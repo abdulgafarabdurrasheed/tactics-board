@@ -1,4 +1,4 @@
-import { Player, FormationPosition } from './types';
+import type { Player, FormationPosition } from './types';
 
 export const RATIO = 2/3
 

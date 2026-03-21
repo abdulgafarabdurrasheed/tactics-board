@@ -1,6 +1,13 @@
+import type { Player, Phase } from '../types';
+import PlayerCard from './PlayerCard';
 import './FootballField.css'
 
-export default function FootballField() {
+interface FootballFieldProps {
+    players: Player[];
+    phase: Phase;
+}
+
+export default function FootballField({ players, phase }: FootballFieldProps) {
     return (
         <div id="field-export-area" className="field-container">
             <svg className="field-svg-background" xmlns="http://www.w3.org/2000/svg">
@@ -16,6 +23,12 @@ export default function FootballField() {
                 <rect x="25%" y="82%" width="50%" height="16%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
                 <rect x="38%" y="92%" width="24%" height="6%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
             </svg>
+
+            <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                {players.map(player => (
+                    <PlayerCard key={player.id} player={player} phase={phase} />
+                ))}
+            </div>
     </div>
     )
 }
