@@ -12,11 +12,9 @@ export default function FootballField() {
                 
                 <rect x="25%" y="2%" width="50%" height="16%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
                 <rect x="38%" y="2%" width="24%" height="6%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
-                <path d="M 38 18 A 15 15 0 0 0 62 18" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
 
                 <rect x="25%" y="82%" width="50%" height="16%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
                 <rect x="38%" y="92%" width="24%" height="6%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
-                <path d="M 38 82 A 15 15 0 0 1 62 82" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
             </svg>
     </div>
     )
