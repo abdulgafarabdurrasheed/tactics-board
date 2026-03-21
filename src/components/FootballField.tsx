@@ -2,8 +2,8 @@ import './FootballField.css'
 
 export default function FootballField() {
     return (
-        <div id="pitch-export-area" className="pitch-container">
-            <svg className="pitch-svg-background" xmlns="http://www.w3.org/2000/svg">
+        <div id="field-export-area" className="field-container">
+            <svg className="field-svg-background" xmlns="http://www.w3.org/2000/svg">
                 <rect x="2%" y="2%" width="96%" height="96%" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
                 <line x1="2%" y1="50%" x2="98%" y2="50%" stroke="var(--accent-cyan)" strokeWidth="2" />
                 

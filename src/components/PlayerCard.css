@@ -1,0 +1,53 @@
+.player-card {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    pointer-events: auto;
+    cursor: grab;
+    z-index: 20;
+    transition: box-shadow 0.2s ease;
+}
+
+.player-card:active {
+    cursor: grabbing;
+}
+
+.player-home {
+    background-color: var(--bg-dark);
+    border: 2px solid var(--accent-cyan);
+    color: #cffafe;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+}
+
+.player-away {
+  background-color: var(--bg-dark);
+  border: 2px solid var(--accent-rose);
+  color: #fff1f2;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+}
+
+.player-selected {
+  border: 2px solid white;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+  z-index: 30;
+}
+
+.player-role {
+  position: absolute;
+  bottom: -1.75rem;
+  white-space: nowrap;
+  background-color: rgba(15, 23, 42, 0.9);
+  font-size: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  color: white;
+  border: 1px solid var(--bg-panel);
+  pointer-events: none;
+}
