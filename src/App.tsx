@@ -88,7 +88,6 @@ function App() {
 
   useEffect(() => {
     const handlePointerMove = (e: MouseEvent | TouchEvent) => {
-      // Don't do anything if we aren't dragging OR drawing
       if (!dragged.isDragging && !drawState.isDrawing) return;
 
       const coordinates = getCoordinates(e);
@@ -143,19 +142,15 @@ function App() {
     };
     
     if (dragged.isDragging || drawState.isDrawing) {
-      window.addEventListener("mousemove", handlePointerMove);
-      window.addEventListener("touchmove", handlePointerMove, {
-        passive: false,
-      });
-      window.addEventListener("mouseup", handlePointerUp);
-      window.addEventListener("touchend", handlePointerUp);
+      window.addEventListener("pointermove", handlePointerMove as EventListener);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
     }
 
     return () => {
-      window.removeEventListener("mousemove", handlePointerMove);
-      window.removeEventListener("touchmove", handlePointerMove);
-      window.removeEventListener("mouseup", handlePointerUp);
-      window.removeEventListener("touchend", handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove as EventListener);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [dragged, phase, drawState, tool]);
 
