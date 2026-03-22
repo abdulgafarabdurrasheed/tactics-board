@@ -2,13 +2,19 @@ import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
 import { generateInitialPlayers } from "./constants";
-import type { Player, Phase, ToolType } from "./types";
+import type { Player, Phase, ToolType, Arrow } from "./types";
+import { Move, Navigation, PenTool, Trash2 } from 'lucide-react'
 
 function App() {
   const [players, setPlayers] = useState<Player[]>(generateInitialPlayers());
   const [phase, setPhase] = useState<Phase>("offensive");
   const [tool, setTool] = useState<ToolType>("select");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [drawState, setDrawState] = useState({
+    isDrawing: false, startX: 0, startY: 0, currentX: 0, currentY: 0
+  });
+  const clearArrows = () => setArrows([]);
 
   const [dragged, setDragged] = useState({
     isDragging: false,
@@ -130,8 +136,44 @@ function App() {
         />
       </div>
       <div className="dashboard-section">
-        <h1 style={{ color: "white" }}>Tactical Engine</h1>
-        <p style={{ color: "var(--text-muted)" }}>Dashboard controls</p>
+        <div>
+          <h1 style={{ color: "white", textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Tactical Engine
+          </h1>
+          <p style={{ color: "var(--text-muted)", fontSize: '0.75rem', marginTop: '0.25rem' }}>Football Manager Dashboard controls</p>
+        </div>
+
+        <div className="tools-container">
+          <h2 className="tools-header">
+            Drawing Tools
+          </h2>
+          <div className="tools-grid">
+            <button
+              onClick={() => setTool('select')}
+              className={`tool-button ${tool === 'select' ? 'active-select' : ''}`}
+            >
+              <Move size={18} />
+            </button>
+            <button
+              onClick={() => setTool('pass')}
+              className={`tool-button ${tool === 'pass' ? 'active-pass' : ''}`}
+            >
+              <Navigation size={18} style={{ transform: 'rotate(45deg)' }} />
+            </button>
+            <button
+              onClick={() => setTool('run')}
+              className={`tool-button ${tool === 'run' ? 'active-run' : ''}`}
+            >
+              <PenTool size={18} />
+            </button>
+            <button
+              onClick={clearArrows}
+              className="tool-button clear-btn"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

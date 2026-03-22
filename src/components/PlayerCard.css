@@ -1,9 +1,8 @@
 .player-card {
     position: absolute;
     transform: translate(-50%, -50%);
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -20,22 +19,19 @@
 }
 
 .player-home {
-    background-color: var(--bg-dark);
-    border: 2px solid var(--accent-cyan);
+    background-color: var(--accent-cyan);
     color: #cffafe;
     box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
 }
 
 .player-away {
-  background-color: var(--bg-dark);
-  border: 2px solid var(--accent-rose);
+  background-color: red;
   color: #fff1f2;
   box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
 }
 
 .player-selected {
   border: 2px solid white;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
   z-index: 30;
 }
 
