@@ -5,8 +5,6 @@
     aspect-ratio: 2 / 3;
     background-color: var(--pitch-green);
     border: 2px solid var(--bg-panel);
-    border-radius: 8px;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     touch-action: none;
     cursor: crosshair;
