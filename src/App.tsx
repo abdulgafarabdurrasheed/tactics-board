@@ -70,44 +70,79 @@ function App() {
     });
   };
 
+  const handleFieldPointerDown = (e: React.PointerEvent) => {
+    if (tool === "select") {
+      setSelectedPlayerId(null);
+      return;
+    }
+    e.preventDefault();
+    const coordinates = getCoordinates(e);
+    setDrawState({
+      isDrawing: true,
+      startX: coordinates.x,
+      startY: coordinates.y,
+      currentX: coordinates.x,
+      currentY: coordinates.y,
+    });
+  };
+
   useEffect(() => {
     const handlePointerMove = (e: MouseEvent | TouchEvent) => {
-      if (!dragged.isDragging || !dragged.id) return;
+      // Don't do anything if we aren't dragging OR drawing
+      if (!dragged.isDragging && !drawState.isDrawing) return;
 
       const coordinates = getCoordinates(e);
-      const deltaX = coordinates.x - dragged.startX;
-      const deltaY = coordinates.y - dragged.startY;
 
-      const newX = Math.max(0, Math.min(100, dragged.currentX + deltaX));
-      const newY = Math.max(0, Math.min(100, dragged.currentY + deltaY));
+      if (dragged.isDragging && dragged.id) {
+        const deltaX = coordinates.x - dragged.startX;
+        const deltaY = coordinates.y - dragged.startY;
+        const newX = Math.max(0, Math.min(100, dragged.currentX + deltaX));
+        const newY = Math.max(0, Math.min(100, dragged.currentY + deltaY));
+       
+        setPlayers((prev) =>
+          prev.map((p) =>
+            p.id === dragged.id
+              ? {
+                  ...p,
+                  position: { ...p.position, [phase]: { x: newX, y: newY } },
+                }
+              : p,
+          ),
+        );
 
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.id === dragged.id
-            ? {
-                ...p,
-                position: { ...p.position, [phase]: { x: newX, y: newY } },
-              }
-            : p,
-        ),
-      );
-
-      setDragged((prev) => ({
-        ...prev,
-        startX: coordinates.x,
-        startY: coordinates.y,
-        currentX: newX,
-        currentY: newY,
-      }));
+        setDragged((prev) => ({
+          ...prev,
+          startX: coordinates.x,
+          startY: coordinates.y,
+          currentX: newX,
+          currentY: newY,
+        }));
+      } else if (drawState.isDrawing) {
+        const coordinates = getCoordinates(e);
+        setDrawState(prev => ({ ...prev, currentX: coordinates.x, currentY: coordinates.y }));
+      }
     };
 
     const handlePointerUp = () => {
       if (dragged.isDragging) {
         setDragged((prev) => ({ ...prev, isDragging: false, id: null }));
       }
+      if (drawState.isDrawing) {
+        const dx = drawState.currentX - drawState.startX;
+        const dy = drawState.currentY - drawState.startY;
+        if (Math.sqrt(dx*dx + dy*dy) > 2) {
+          setArrows(prev => [...prev, {
+            id: Date.now(),
+            start: { x: drawState.startX, y: drawState.startY },
+            end: { x: drawState.currentX, y: drawState.currentY },
+            type: tool as 'pass' | 'run'
+          }])
+        }
+        setDrawState(prev => ({ ...prev, isDrawing: false }));
+      }
     };
-
-    if (dragged.isDragging) {
+    
+    if (dragged.isDragging || drawState.isDrawing) {
       window.addEventListener("mousemove", handlePointerMove);
       window.addEventListener("touchmove", handlePointerMove, {
         passive: false,
@@ -122,7 +157,7 @@ function App() {
       window.removeEventListener("mouseup", handlePointerUp);
       window.removeEventListener("touchend", handlePointerUp);
     };
-  }, [dragged, phase]);
+  }, [dragged, phase, drawState, tool]);
 
   return (
     <div className="app-layout">
@@ -133,6 +168,10 @@ function App() {
           fieldRef={fieldRef}
           selectedPlayerId={selectedPlayerId}
           onPlayerPointerDown={handlePlayerPosition}
+          onFieldPointerDown={handleFieldPointerDown}
+          arrows={arrows}
+          drawState={drawState}
+          tool={tool}
         />
       </div>
       <div className="dashboard-section">
