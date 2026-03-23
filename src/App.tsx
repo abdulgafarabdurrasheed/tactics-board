@@ -1,9 +1,18 @@
 import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
-import { generateInitialPlayers } from "./constants";
-import type { Player, Phase, ToolType, Arrow } from "./types";
-import { Move, Navigation, PenTool, Trash2 } from 'lucide-react'
+import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
+import type { Player, Phase, ToolType, Arrow, TeamType } from "./types";
+import {
+  Move,
+  Navigation,
+  PenTool,
+  Trash2,
+  Users,
+  Download,
+  ShieldAlert,
+  Check,
+} from "lucide-react";
 
 function App() {
   const [players, setPlayers] = useState<Player[]>(generateInitialPlayers());
@@ -12,8 +21,50 @@ function App() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [drawState, setDrawState] = useState({
-    isDrawing: false, startX: 0, startY: 0, currentX: 0, currentY: 0
+    isDrawing: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
   });
+  const [activeTeam, setActiveTeam] = useState<TeamType>("home");
+
+  const applyFormation = (formationName: string) => {
+    const formation = FORMATIONS[formationName];
+    if (!formation) return;
+
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.team === activeTeam) return p;
+
+        const teamPlayers = prev.filter((pl) => pl.team === activeTeam);
+        const fIdx = teamPlayers.indexOf(p);
+        if (fIdx >= formation.length) return p;
+
+        const newPos = formation[fIdx];
+
+        const targetX = activeTeam === "home" ? newPos.x : 100 - newPos.x;
+        const targetY = activeTeam === "home" ? newPos.y : 100 - newPos.y;
+
+        return {
+          ...p,
+          number: newPos.n,
+          role: newPos.r,
+          position: {
+            ...p.position,
+            [phase]: { x: targetX, y: targetY },
+          },
+        };
+      }),
+    );
+  };
+
+  const updatePlayer = (field: keyof Player, value: string | number) => {
+    setPlayers(prev => prev.map(p => 
+      p.id === selectedPlayerId ? { ...p, [field]: value } : p
+    ));
+  };
+  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
   const clearArrows = () => setArrows([]);
 
   const [dragged, setDragged] = useState({
@@ -97,7 +148,7 @@ function App() {
         const deltaY = coordinates.y - dragged.startY;
         const newX = Math.max(0, Math.min(100, dragged.currentX + deltaX));
         const newY = Math.max(0, Math.min(100, dragged.currentY + deltaY));
-       
+
         setPlayers((prev) =>
           prev.map((p) =>
             p.id === dragged.id
@@ -118,7 +169,11 @@ function App() {
         }));
       } else if (drawState.isDrawing) {
         const coordinates = getCoordinates(e);
-        setDrawState(prev => ({ ...prev, currentX: coordinates.x, currentY: coordinates.y }));
+        setDrawState((prev) => ({
+          ...prev,
+          currentX: coordinates.x,
+          currentY: coordinates.y,
+        }));
       }
     };
 
@@ -129,26 +184,35 @@ function App() {
       if (drawState.isDrawing) {
         const dx = drawState.currentX - drawState.startX;
         const dy = drawState.currentY - drawState.startY;
-        if (Math.sqrt(dx*dx + dy*dy) > 2) {
-          setArrows(prev => [...prev, {
-            id: Date.now(),
-            start: { x: drawState.startX, y: drawState.startY },
-            end: { x: drawState.currentX, y: drawState.currentY },
-            type: tool as 'pass' | 'run'
-          }])
+        if (Math.sqrt(dx * dx + dy * dy) > 2) {
+          setArrows((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              start: { x: drawState.startX, y: drawState.startY },
+              end: { x: drawState.currentX, y: drawState.currentY },
+              type: tool as "pass" | "run",
+            },
+          ]);
         }
-        setDrawState(prev => ({ ...prev, isDrawing: false }));
+        setDrawState((prev) => ({ ...prev, isDrawing: false }));
       }
     };
-    
+
     if (dragged.isDragging || drawState.isDrawing) {
-      window.addEventListener("pointermove", handlePointerMove as EventListener);
+      window.addEventListener(
+        "pointermove",
+        handlePointerMove as EventListener,
+      );
       window.addEventListener("pointerup", handlePointerUp);
       window.addEventListener("pointercancel", handlePointerUp);
     }
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove as EventListener);
+      window.removeEventListener(
+        "pointermove",
+        handlePointerMove as EventListener,
+      );
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
@@ -157,6 +221,20 @@ function App() {
   return (
     <div className="app-layout">
       <div className="field-section">
+        <div className="phase-overlay">
+          <button
+            onClick={() => setPhase("offensive")}
+            className={`phase-btn ${phase === "offensive" ? "active-offense" : ""}`}
+          >
+            <PenTool size={16} /> In Possession
+          </button>
+          <button
+            onClick={() => setPhase("defensive")}
+            className={`phase-btn ${phase === "defensive" ? "active-defense" : ""}`}
+          >
+            <ShieldAlert size={16} /> Out of Possession
+          </button>
+        </div>
         <FootballField
           players={players}
           phase={phase}
@@ -171,42 +249,119 @@ function App() {
       </div>
       <div className="dashboard-section">
         <div>
-          <h1 style={{ color: "white", textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1
+            style={{
+              color: "white",
+              textTransform: "uppercase",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+          >
             Tactical Engine
           </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: '0.75rem', marginTop: '0.25rem' }}>Football Manager Dashboard controls</p>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.75rem",
+              marginTop: "0.25rem",
+            }}
+          >
+            Football Manager Dashboard controls
+          </p>
         </div>
 
         <div className="tools-container">
-          <h2 className="tools-header">
-            Drawing Tools
-          </h2>
+          <h2 className="tools-header">Drawing Tools</h2>
           <div className="tools-grid">
             <button
-              onClick={() => setTool('select')}
-              className={`tool-button ${tool === 'select' ? 'active-select' : ''}`}
+              onClick={() => setTool("select")}
+              className={`tool-button ${tool === "select" ? "active-select" : ""}`}
             >
               <Move size={18} />
             </button>
             <button
-              onClick={() => setTool('pass')}
-              className={`tool-button ${tool === 'pass' ? 'active-pass' : ''}`}
+              onClick={() => setTool("pass")}
+              className={`tool-button ${tool === "pass" ? "active-pass" : ""}`}
             >
-              <Navigation size={18} style={{ transform: 'rotate(45deg)' }} />
+              <Navigation size={18} style={{ transform: "rotate(45deg)" }} />
             </button>
             <button
-              onClick={() => setTool('run')}
-              className={`tool-button ${tool === 'run' ? 'active-run' : ''}`}
+              onClick={() => setTool("run")}
+              className={`tool-button ${tool === "run" ? "active-run" : ""}`}
             >
               <PenTool size={18} />
             </button>
-            <button
-              onClick={clearArrows}
-              className="tool-button clear-btn"
-            >
+            <button onClick={clearArrows} className="tool-button clear-btn">
               <Trash2 size={18} />
             </button>
           </div>
+        </div>
+
+        <div className="config-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <h2 className="tools-header" style={{ margin: 0 }}>Formations</h2>
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button 
+                onClick={() => setActiveTeam('home')}
+                style={{ fontSize: '0.625rem', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', background: activeTeam === 'home' ? 'var(--accent-cyan)' : 'transparent', color: activeTeam === 'home' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer' }}
+              >HOME</button>
+              <button 
+                onClick={() => setActiveTeam('away')}
+                style={{ fontSize: '0.625rem', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', background: activeTeam === 'away' ? 'var(--accent-rose)' : 'transparent', color: activeTeam === 'away' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer' }}
+              >AWAY</button>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            {Object.keys(FORMATIONS).map(f => (
+              <button key={f} onClick={() => applyFormation(f)} className="formation-btn">
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="config-card" style={{ flex: 1 }}>
+          <h2 className="tools-header">Player Config</h2>
+          {selectedPlayer ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Player Name</label>
+                <input 
+                  type="text" 
+                  value={selectedPlayer.name}
+                  onChange={(e) => updatePlayer('name', e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Jersey Number</label>
+                <input 
+                  type="number" 
+                  value={selectedPlayer.number}
+                  onChange={(e) => updatePlayer('number', parseInt(e.target.value) || 1)}
+                  className="input-field" min="1" max="99"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Playstyle Role</label>
+                <select 
+                  value={selectedPlayer.role}
+                  onChange={(e) => updatePlayer('role', e.target.value)}
+                  className="input-field"
+                >
+                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.5, padding: '2rem 0' }}>
+              <Users size={32} style={{ marginBottom: '0.5rem' }} />
+              <p style={{ fontSize: '0.75rem', textAlign: 'center' }}>Select a player on the board<br/>to edit properties.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
