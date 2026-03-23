@@ -34,3 +34,12 @@ export interface FormationPosition {
     x: number;
     y: number;
 }
+
+export interface SavedPlay {
+    id: string;
+    name: string;
+    players: Player[];
+    arrows: Arrow[];
+    ballPosition: Coordinates;
+    phase: Phase;
+}

@@ -2,7 +2,7 @@ import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
 import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
-import type { Player, Phase, ToolType, Arrow, TeamType, Coordinates } from "./types";
+import type { Player, Phase, ToolType, Arrow, TeamType, Coordinates, SavedPlay } from "./types";
 import html2canvas from 'html2canvas';
 import {
   Move,
@@ -11,13 +11,14 @@ import {
   Trash2,
   Users,
   Download,
-  ShieldAlert,
+  X,
   Check,
 } from "lucide-react";
 
 const SAVED_PLAYERS_KEY = "tactics_board_layers";
 const SAVED_ARROWS_KEY = "tactics_board_arrows";
 const SAVED_BALL_KEY = "tactics_board_ball";
+const SAVED_PLAYS_KEY = "tactics_board_saved_plays";
 
 const loadSavedPlayers = (): Player[] => {
   const saved = localStorage.getItem(SAVED_PLAYERS_KEY);
@@ -41,6 +42,13 @@ const loadSavedBall = (): Coordinates => {
   return { x: 50, y: 50 };
 }
 
+const loadSavedPlays = (): SavedPlay[] => {
+  const saved = localStorage.getItem(SAVED_PLAYS_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved plays", e); }
+  } return [];
+};
+
 
 function App() {
   const [players, setPlayers] = useState<Player[]>(loadSavedPlayers);
@@ -51,6 +59,7 @@ function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'field' | 'dashboard'>('field');
   const [ballPosition, setBallPosition] = useState<Coordinates>(loadSavedBall);
+  const [savedPlays, setSavedPlays] = useState<SavedPlay[]>(loadSavedPlays);
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -127,6 +136,30 @@ function App() {
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
   const clearArrows = () => setArrows([]);
 
+  const saveCurrentPlay = () => {
+    const newPlay: SavedPlay = {
+      id: Date.now().toString(),
+      name: `Tactic ${savedPlays.length + 1}`,
+      players: JSON.parse(JSON.stringify(players)),
+      arrows: JSON.parse(JSON.stringify(arrows)),
+      ballPosition: { ...ballPosition },
+      phase,
+    }
+    setSavedPlays(prev => [...prev, newPlay]);
+  };
+
+  const loadPlay = (play: SavedPlay) => {
+    setPlayers(JSON.parse(JSON.stringify(play.players)));
+    setArrows(JSON.parse(JSON.stringify(play.arrows)));
+    setBallPosition({ ...play.ballPosition });
+    setPhase(play.phase);
+    setTool('select');
+  };
+
+  const deletePlay = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSavedPlays(prev => prev.filter(p => p.id !== id));
+  }
   const [dragged, setDragged] = useState({
     isDragging: false,
     id: null as string | null,
@@ -148,6 +181,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem(SAVED_BALL_KEY, JSON.stringify(ballPosition));
   }, [ballPosition]);
+  useEffect(() => {
+    localStorage.setItem(SAVED_PLAYS_KEY, JSON.stringify(savedPlays));
+  }, [savedPlays]);
 
   const getCoordinates = (
     e: globalThis.MouseEvent | globalThis.TouchEvent | React.PointerEvent,
@@ -356,7 +392,7 @@ function App() {
           tool={tool}
           ballPosition={ballPosition}
           onBallPointerDown={handleBallPosition}
-          draggedId={dragged.id} 
+          draggedId={dragged.id}
         />
       </div>
       <div className={`dashboard-section ${activeTab === 'field' ? 'mobile-hidden' : ''}`}>
@@ -431,6 +467,28 @@ function App() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="config-">
+          <h2 className="tools-header">Playbook</h2>
+          <button onClick={saveCurrentPlay} className="save-play-btn">
+            Save current Board
+          </button>
+
+          {savedPlays.length > 0 && (
+            <div className="playbook-list">
+              {savedPlays.map(play => (
+                <div key={play.id} className="play-item">
+                  <button onClick={() => loadPlay(play)} className="play-load-btn">
+                    {play.name}
+                  </button>
+                  <button onClick={(e) => deletePlay(play.id, e)} className="play-del-btn flex items-center justify-center">
+                    <X size={14} /> 
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="config-card" style={{ flex: 1 }}>
