@@ -3,6 +3,7 @@ import "./App.css";
 import { useState, useRef, useEffect } from "react";
 import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
 import type { Player, Phase, ToolType, Arrow, TeamType } from "./types";
+import html2canvas from 'html2canvas';
 import {
   Move,
   Navigation,
@@ -20,6 +21,7 @@ function App() {
   const [tool, setTool] = useState<ToolType>("select");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -27,24 +29,29 @@ function App() {
     currentX: 0,
     currentY: 0,
   });
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000)
+  }
   const [activeTeam, setActiveTeam] = useState<TeamType>("home");
 
   const applyFormation = (formationName: string) => {
     const formation = FORMATIONS[formationName];
     if (!formation) return;
 
-    setPlayers((prev) =>
-      prev.map((p) => {
-        if (p.team === activeTeam) return p;
-
-        const teamPlayers = prev.filter((pl) => pl.team === activeTeam);
-        const fIdx = teamPlayers.indexOf(p);
-        if (fIdx >= formation.length) return p;
-
+    setPlayers(prev => {
+      const teamPlayers = prev.filter(pl => pl.team === activeTeam);
+      
+      return prev.map(p => {
+        if (p.team !== activeTeam) return p;
+        
+        const fIdx = teamPlayers.findIndex(pl => pl.id === p.id);
+        
+        if (fIdx === -1 || fIdx >= formation.length) return p;
+        
         const newPos = formation[fIdx];
-
-        const targetX = activeTeam === "home" ? newPos.x : 100 - newPos.x;
-        const targetY = activeTeam === "home" ? newPos.y : 100 - newPos.y;
+        const targetX = activeTeam === 'home' ? newPos.x : 100 - newPos.x;
+        const targetY = activeTeam === 'home' ? newPos.y : 100 - newPos.y;
 
         return {
           ...p,
@@ -52,11 +59,11 @@ function App() {
           role: newPos.r,
           position: {
             ...p.position,
-            [phase]: { x: targetX, y: targetY },
-          },
+            [phase]: { x: targetX, y: targetY }
+          }
         };
-      }),
-    );
+      });
+    });
   };
 
   const updatePlayer = (field: keyof Player, value: string | number) => {
@@ -64,6 +71,30 @@ function App() {
       p.id === selectedPlayerId ? { ...p, [field]: value } : p
     ));
   };
+  const exportBoard = async () => {
+    showToast("Preparing export...");
+    try {
+      const element = document.getElementById('pitch-export-area');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#020617',
+        scale: 2,
+        useCORS: true,
+      });
+
+      const image = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.download = `Tactics-Board-${Date.now()}.png`;
+      link.href = image;
+      link.click();
+
+      showToast("Export successful!");
+    } catch (err) {
+      console.error(err);
+      showToast("Export failed!");
+    }
+  }
   const selectedPlayer = players.find(p => p.id === selectedPlayerId);
   const clearArrows = () => setArrows([]);
 
@@ -225,14 +256,12 @@ function App() {
           <button
             onClick={() => setPhase("offensive")}
             className={`phase-btn ${phase === "offensive" ? "active-offense" : ""}`}
-          >
-            <PenTool size={16} /> In Possession
+          > In Possession
           </button>
           <button
             onClick={() => setPhase("defensive")}
             className={`phase-btn ${phase === "defensive" ? "active-defense" : ""}`}
-          >
-            <ShieldAlert size={16} /> Out of Possession
+          > Out of Possession
           </button>
         </div>
         <FootballField
@@ -363,7 +392,20 @@ function App() {
             </div>
           )}
         </div>
+        <button 
+          onClick={exportBoard}
+          style={{ width: '100%', padding: '0.75rem', backgroundColor: '#3b82f6', color: 'var(--bg-darker)', fontWeight: 'bold', border: 'none', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: 'auto' }}
+        >
+          <Download size={18} />
+          Export Tactic PNG
+        </button>
       </div>
+      {toastMessage && (
+        <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--bg-panel)', color: 'white', padding: '0.5rem 1rem', borderRadius: '9999px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 50 }}>
+          <Check size={16} />
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }
