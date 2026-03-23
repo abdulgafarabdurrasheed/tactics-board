@@ -22,6 +22,7 @@ function App() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'field' | 'dashboard'>('field');
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -251,7 +252,21 @@ function App() {
 
   return (
     <div className="app-layout">
-      <div className="field-section">
+      <div className="mobile-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'field' ? 'active-tab' : ''}`}
+          onClick={() => setActiveTab('field')}
+        >
+          Field View
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'dashboard' ? 'active-tab' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          Dashboard View
+        </button>
+      </div>
+      <div className={`field-section ${activeTab === 'dashboard' ? 'mobile-hidden' : ''}`}>
         <div className="phase-overlay">
           <button
             onClick={() => setPhase("offensive")}
@@ -276,7 +291,7 @@ function App() {
           tool={tool}
         />
       </div>
-      <div className="dashboard-section">
+      <div className={`dashboard-section ${activeTab === 'field' ? 'mobile-hidden' : ''}`}>
         <div>
           <h1
             style={{
