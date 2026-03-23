@@ -1,7 +1,7 @@
 .field-container {
     position: relative;
     width: 100%;
-    max-width: 500px;
+    max-width: 70vh; /* Bound it by viewport height so it never causes vertical scrolling */
     aspect-ratio: 2 / 3;
     background-color: var(--pitch-green);
     border: 2px solid var(--bg-panel);
