@@ -356,6 +356,7 @@ function App() {
           tool={tool}
           ballPosition={ballPosition}
           onBallPointerDown={handleBallPosition}
+          draggedId={dragged.id} 
         />
       </div>
       <div className={`dashboard-section ${activeTab === 'field' ? 'mobile-hidden' : ''}`}>

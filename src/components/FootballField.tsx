@@ -20,6 +20,7 @@ interface FootballFieldProps {
   tool: ToolType;
   ballPosition: Coordinates;
   onBallPointerDown: (e: React.PointerEvent) => void;
+  draggedId: string | null;
 }
 
 export default function FootballField({
@@ -34,6 +35,7 @@ export default function FootballField({
   tool,
   ballPosition,
   onBallPointerDown,
+  draggedId,
 }: FootballFieldProps) {
   return (
     <div
@@ -197,6 +199,7 @@ export default function FootballField({
             player={player}
             phase={phase}
             isSelected={selectedPlayerId === player.id}
+            isDragging={draggedId === player.id}
             onPointerDown={onPlayerPointerDown}
           />
         ))}
