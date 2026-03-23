@@ -15,12 +15,30 @@ import {
   Check,
 } from "lucide-react";
 
+const SAVED_PLAYERS_KEY = "tactics_board_layers";
+const SAVED_ARROWS_KEY = "tactics_board_arrows";
+
+const loadSavedPlayers = (): Player[] => {
+  const saved = localStorage.getItem(SAVED_PLAYERS_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved players", e); }
+  } return generateInitialPlayers();
+};
+
+const loadSavedArrows = (): Arrow[] => {
+  const saved = localStorage.getItem(SAVED_ARROWS_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved arrows", e); }
+  } return [];
+};
+
+
 function App() {
-  const [players, setPlayers] = useState<Player[]>(generateInitialPlayers());
+  const [players, setPlayers] = useState<Player[]>(loadSavedPlayers);
   const [phase, setPhase] = useState<Phase>("offensive");
   const [tool, setTool] = useState<ToolType>("select");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [arrows, setArrows] = useState<Arrow[]>(loadSavedArrows);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'field' | 'dashboard'>('field');
   const [drawState, setDrawState] = useState({
@@ -109,6 +127,14 @@ function App() {
   });
 
   const fieldRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(SAVED_PLAYERS_KEY, JSON.stringify(players));
+  }, [players]);
+
+  useEffect(() => {
+    localStorage.setItem(SAVED_ARROWS_KEY, JSON.stringify(arrows));
+  }, [arrows]);
 
   const getCoordinates = (
     e: globalThis.MouseEvent | globalThis.TouchEvent | React.PointerEvent,
