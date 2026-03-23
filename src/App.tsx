@@ -2,7 +2,7 @@ import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
 import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
-import type { Player, Phase, ToolType, Arrow, TeamType } from "./types";
+import type { Player, Phase, ToolType, Arrow, TeamType, Coordinates } from "./types";
 import html2canvas from 'html2canvas';
 import {
   Move,
@@ -17,6 +17,7 @@ import {
 
 const SAVED_PLAYERS_KEY = "tactics_board_layers";
 const SAVED_ARROWS_KEY = "tactics_board_arrows";
+const SAVED_BALL_KEY = "tactics_board_ball";
 
 const loadSavedPlayers = (): Player[] => {
   const saved = localStorage.getItem(SAVED_PLAYERS_KEY);
@@ -32,6 +33,14 @@ const loadSavedArrows = (): Arrow[] => {
   } return [];
 };
 
+const loadSavedBall = (): Coordinates => {
+  const saved = localStorage.getItem(SAVED_BALL_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.error(e); }
+  }
+  return { x: 50, y: 50 };
+}
+
 
 function App() {
   const [players, setPlayers] = useState<Player[]>(loadSavedPlayers);
@@ -41,6 +50,7 @@ function App() {
   const [arrows, setArrows] = useState<Arrow[]>(loadSavedArrows);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'field' | 'dashboard'>('field');
+  const [ballPosition, setBallPosition] = useState<Coordinates>(loadSavedBall);
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -135,6 +145,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem(SAVED_ARROWS_KEY, JSON.stringify(arrows));
   }, [arrows]);
+  useEffect(() => {
+    localStorage.setItem(SAVED_BALL_KEY, JSON.stringify(ballPosition));
+  }, [ballPosition]);
 
   const getCoordinates = (
     e: globalThis.MouseEvent | globalThis.TouchEvent | React.PointerEvent,
@@ -179,6 +192,22 @@ function App() {
     });
   };
 
+  const handleBallPosition = (e: React.PointerEvent) => {
+    if (tool !== "select") return;
+    e.stopPropagation();
+    setSelectedPlayerId(null);
+
+    const coordinates = getCoordinates(e);
+    setDragged({
+      isDragging: true,
+      id: 'match-ball',
+      startX: coordinates.x,
+      startY: coordinates.y,
+      currentX: ballPosition.x,
+      currentY: ballPosition.y,
+    });
+  };
+
   const handleFieldPointerDown = (e: React.PointerEvent) => {
     if (tool === "select") {
       setSelectedPlayerId(null);
@@ -206,6 +235,16 @@ function App() {
         const deltaY = coordinates.y - dragged.startY;
         const newX = Math.max(0, Math.min(100, dragged.currentX + deltaX));
         const newY = Math.max(0, Math.min(100, dragged.currentY + deltaY));
+
+        if(dragged.id === 'match-ball') {
+          setBallPosition({ x: newX, y: newY });
+        } else {
+          setPlayers(prev => prev.map(p =>
+            p.id === dragged.id
+              ? { ...p, position: { ...p.position, [phase]: { x: newX, y: newY } } }
+              : p
+          ));
+        }
 
         setPlayers((prev) =>
           prev.map((p) =>
@@ -315,6 +354,8 @@ function App() {
           arrows={arrows}
           drawState={drawState}
           tool={tool}
+          ballPosition={ballPosition}
+          onBallPointerDown={handleBallPosition}
         />
       </div>
       <div className={`dashboard-section ${activeTab === 'field' ? 'mobile-hidden' : ''}`}>

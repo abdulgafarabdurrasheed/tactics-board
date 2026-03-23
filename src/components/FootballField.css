@@ -1,7 +1,7 @@
 .field-container {
     position: relative;
     width: 100%;
-    max-width: 70vh; /* Bound it by viewport height so it never causes vertical scrolling */
+    max-width: 70vh;
     aspect-ratio: 2 / 3;
     background-color: var(--pitch-green);
     border: 2px solid var(--bg-panel);
@@ -17,4 +17,35 @@
     height: 100%;
     pointer-events: none;
     opacity: 0.4;
+}
+
+.match-ball {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: #f8fafc;
+    border: 3px solid #0f172a;
+    border-radius: 50%;
+    z-index: 25;
+    cursor: grab;
+    pointer-events: auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s;
+}
+
+.match-ball:active {
+    cursor: grabbing;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6);
+}
+
+.match-ball::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background-color: #0f172a;
+    border-radius: 50%;
 }

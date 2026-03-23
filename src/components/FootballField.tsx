@@ -1,4 +1,4 @@
-import type { Player, Phase, ToolType, Arrow } from "../types";
+import type { Player, Phase, ToolType, Arrow, Coordinates } from "../types";
 import PlayerCard from "./PlayerCard";
 import "./FootballField.css";
 
@@ -18,6 +18,8 @@ interface FootballFieldProps {
     currentY: number;
   };
   tool: ToolType;
+  ballPosition: Coordinates;
+  onBallPointerDown: (e: React.PointerEvent) => void;
 }
 
 export default function FootballField({
@@ -30,6 +32,8 @@ export default function FootballField({
   arrows,
   drawState,
   tool,
+  ballPosition,
+  onBallPointerDown,
 }: FootballFieldProps) {
   return (
     <div
@@ -176,8 +180,17 @@ export default function FootballField({
           width: "100%",
           height: "100%",
           pointerEvents: "none",
+          zIndex: 20,
         }}
       >
+        <div
+          className="match-ball"
+          style={{ left: `${ballPosition.x}%`, top: `${ballPosition.y}%` }}
+          onPointerDown={onBallPointerDown}
+        >
+
+        </div>
+
         {players.map((player) => (
           <PlayerCard
             key={player.id}
