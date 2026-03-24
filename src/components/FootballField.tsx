@@ -1,6 +1,7 @@
 import type { Player, Phase, ToolType, Arrow, Coordinates } from "../types";
 import PlayerCard from "./PlayerCard";
 import "./FootballField.css";
+import { PASSING_RANGES } from "../constants";
 
 interface FootballFieldProps {
   players: Player[];
@@ -37,6 +38,10 @@ export default function FootballField({
   onBallPointerDown,
   draggedId,
 }: FootballFieldProps) {
+
+  const activePlayer = players.find(p => p.id === selectedPlayerId);
+  const passingRange = activePlayer ? (PASSING_RANGES[activePlayer.role] || "12rem") : "0";
+
   return (
     <div
       id="field-export-area"
@@ -185,6 +190,21 @@ export default function FootballField({
           zIndex: 20,
         }}
       >
+
+        {activePlayer && (
+          <div
+            className={`threat-zone ${activePlayer.team === "home" ? "threat-home" : "threat-away"}`}
+            style={{
+              width: passingRange,
+              height: passingRange,
+              left: `${activePlayer.position[phase].x}%`,
+              top: `${activePlayer.position[phase].y}%`,
+              transition: draggedId === activePlayer.id ? "none" : undefined,
+            }}
+          >
+
+          </div>
+        )}
         <div
           className="match-ball"
           style={{ left: `${ballPosition.x}%`, top: `${ballPosition.y}%` }}

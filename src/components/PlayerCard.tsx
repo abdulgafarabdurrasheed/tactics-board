@@ -1,6 +1,5 @@
 import type React from "react";
 import type { Player, Phase } from "../types";
-import { PASSING_RANGES } from "../constants";
 import "./PlayerCard.css";
 
 interface PlayerCardProps {
@@ -22,7 +21,6 @@ export default function PlayerCard({
   const isHome = player.team === "home";
   const themeClass = isHome ? "player-home" : "player-away";
   const selectedClass = isSelected ? "player-selected" : "";
-  const passingRange = PASSING_RANGES[player.role] || "12rem";
 
   return (
     <div
@@ -36,13 +34,6 @@ export default function PlayerCard({
       }}
       onPointerDown={(e) => onPointerDown?.(e, player)}
     >
-      {isSelected && (
-        <div
-          className={`threat-zone ${isHome ? "threat-home" : "threat-away"}`}
-          style={{ width: passingRange, height: passingRange }}
-        ></div>
-      )}
-
       {player.number}
 
       {isSelected && <div className="player-role">{player.role}</div>}
