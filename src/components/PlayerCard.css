@@ -65,8 +65,8 @@
 }
 
 .threat-home {
-  background-color: var(--accent-cyan);
-  border: 1px solid var(--accent-cyan);
+  background-color:rgb(0, 0, 0);
+  border: 1px solid rgb(0, 0, 0);
 }
 
 .threat-away { 
