@@ -10,6 +10,29 @@ export const ROLES = [
     "Defensive Fullback", "Offensive Goalkeeper", "Defensive Goalkeeper"
 ];
 
+export const PASSING_RANGES: Record<string, string> = {
+    "Cross Specialist": "26rem",
+    "Orchestrator": "24rem",
+    "Creative Playmaker": "22rem",
+    "Classic No. 10": "20rem",
+    "Offensive Fullback": "18rem",
+    "Deep-Lying Forward": "16rem",
+    "Box-to-Box": "14rem",
+    "Offensive Goalkeeper": "14rem",
+    "Prolific Winger": "12rem",
+    "Roaming Flank": "12rem",
+    "Anchor Man": "11rem",
+    "Defensive Fullback": "10rem",
+    "Hole Player": "10rem",
+    "Defensive Goalkeeper": "9rem",
+    "The Destroyer": "8rem",
+    "Build up": "8rem",
+    "Extra Frontman": "6rem",
+    "Dummy Runner": "5rem",
+    "Goal Poacher": "4rem",
+    "Fox in the Box": "4rem",
+};
+
 export const FORMATIONS: Record<string, FormationPosition[]> = {
     "4-3-3": [
         { n: 1, r: "Offensive Goalkeeper", x: 50, y: 90 },
