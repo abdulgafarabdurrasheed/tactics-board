@@ -60,7 +60,7 @@ export const nextPosition = (players: Player[], ballPosition: Coordinates, curre
                 break;
             
             default: 
-                targetX = currentPosition.x
+                targetX = currentPosition.x;
                 targetY = currentPosition.y;
                 speed = 0;
         }

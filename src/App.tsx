@@ -2,8 +2,16 @@ import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
 import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
-import type { Player, Phase, ToolType, Arrow, TeamType, Coordinates, SavedPlay } from "./types";
-import html2canvas from 'html2canvas';
+import type {
+  Player,
+  Phase,
+  ToolType,
+  Arrow,
+  TeamType,
+  Coordinates,
+  SavedPlay,
+} from "./types";
+import html2canvas from "html2canvas";
 import {
   Move,
   Navigation,
@@ -13,7 +21,10 @@ import {
   Download,
   X,
   Check,
+  Play,
+  Pause,
 } from "lucide-react";
+import { nextPosition } from "./simulationEngine";
 
 const SAVED_PLAYERS_KEY = "tactics_board_layers";
 const SAVED_ARROWS_KEY = "tactics_board_arrows";
@@ -23,32 +34,50 @@ const SAVED_PLAYS_KEY = "tactics_board_saved_plays";
 const loadSavedPlayers = (): Player[] => {
   const saved = localStorage.getItem(SAVED_PLAYERS_KEY);
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved players", e); }
-  } return generateInitialPlayers();
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to parse saved players", e);
+    }
+  }
+  return generateInitialPlayers();
 };
 
 const loadSavedArrows = (): Arrow[] => {
   const saved = localStorage.getItem(SAVED_ARROWS_KEY);
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved arrows", e); }
-  } return [];
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to parse saved arrows", e);
+    }
+  }
+  return [];
 };
 
 const loadSavedBall = (): Coordinates => {
   const saved = localStorage.getItem(SAVED_BALL_KEY);
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
   }
   return { x: 50, y: 50 };
-}
+};
 
 const loadSavedPlays = (): SavedPlay[] => {
   const saved = localStorage.getItem(SAVED_PLAYS_KEY);
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) { console.error("Failed to parse saved plays", e); }
-  } return [];
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to parse saved plays", e);
+    }
+  }
+  return [];
 };
-
 
 function App() {
   const [players, setPlayers] = useState<Player[]>(loadSavedPlayers);
@@ -57,7 +86,8 @@ function App() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [arrows, setArrows] = useState<Arrow[]>(loadSavedArrows);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'field' | 'dashboard'>('field');
+  const [activeTab, setActiveTab] = useState<"field" | "dashboard">("field");
+  const [isSimulating, setIsSimulating] = useState(false);
   const [ballPosition, setBallPosition] = useState<Coordinates>(loadSavedBall);
   const [savedPlays, setSavedPlays] = useState<SavedPlay[]>(loadSavedPlays);
   const [drawState, setDrawState] = useState({
@@ -69,27 +99,27 @@ function App() {
   });
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000)
-  }
+    setTimeout(() => setToastMessage(null), 3000);
+  };
   const [activeTeam, setActiveTeam] = useState<TeamType>("home");
 
   const applyFormation = (formationName: string) => {
     const formation = FORMATIONS[formationName];
     if (!formation) return;
 
-    setPlayers(prev => {
-      const teamPlayers = prev.filter(pl => pl.team === activeTeam);
-      
-      return prev.map(p => {
+    setPlayers((prev) => {
+      const teamPlayers = prev.filter((pl) => pl.team === activeTeam);
+
+      return prev.map((p) => {
         if (p.team !== activeTeam) return p;
-        
-        const fIdx = teamPlayers.findIndex(pl => pl.id === p.id);
-        
+
+        const fIdx = teamPlayers.findIndex((pl) => pl.id === p.id);
+
         if (fIdx === -1 || fIdx >= formation.length) return p;
-        
+
         const newPos = formation[fIdx];
-        const targetX = activeTeam === 'home' ? newPos.x : 100 - newPos.x;
-        const targetY = activeTeam === 'home' ? newPos.y : 100 - newPos.y;
+        const targetX = activeTeam === "home" ? newPos.x : 100 - newPos.x;
+        const targetY = activeTeam === "home" ? newPos.y : 100 - newPos.y;
 
         return {
           ...p,
@@ -97,32 +127,34 @@ function App() {
           role: newPos.r,
           position: {
             ...p.position,
-            [phase]: { x: targetX, y: targetY }
-          }
+            [phase]: { x: targetX, y: targetY },
+          },
         };
       });
     });
   };
 
   const updatePlayer = (field: keyof Player, value: string | number) => {
-    setPlayers(prev => prev.map(p => 
-      p.id === selectedPlayerId ? { ...p, [field]: value } : p
-    ));
+    setPlayers((prev) =>
+      prev.map((p) =>
+        p.id === selectedPlayerId ? { ...p, [field]: value } : p,
+      ),
+    );
   };
   const exportBoard = async () => {
     showToast("Preparing export...");
     try {
-      const element = document.getElementById('pitch-export-area');
+      const element = document.getElementById("pitch-export-area");
       if (!element) return;
 
       const canvas = await html2canvas(element, {
-        backgroundColor: '#020617',
+        backgroundColor: "#020617",
         scale: 2,
         useCORS: true,
       });
 
-      const image = canvas.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
+      const image = canvas.toDataURL("image/png", 1.0);
+      const link = document.createElement("a");
       link.download = `Tactics-Board-${Date.now()}.png`;
       link.href = image;
       link.click();
@@ -132,8 +164,8 @@ function App() {
       console.error(err);
       showToast("Export failed!");
     }
-  }
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
+  };
+  const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
   const clearArrows = () => setArrows([]);
 
   const saveCurrentPlay = () => {
@@ -144,8 +176,8 @@ function App() {
       arrows: JSON.parse(JSON.stringify(arrows)),
       ballPosition: { ...ballPosition },
       phase,
-    }
-    setSavedPlays(prev => [...prev, newPlay]);
+    };
+    setSavedPlays((prev) => [...prev, newPlay]);
   };
 
   const loadPlay = (play: SavedPlay) => {
@@ -153,13 +185,13 @@ function App() {
     setArrows(JSON.parse(JSON.stringify(play.arrows)));
     setBallPosition({ ...play.ballPosition });
     setPhase(play.phase);
-    setTool('select');
+    setTool("select");
   };
 
   const deletePlay = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSavedPlays(prev => prev.filter(p => p.id !== id));
-  }
+    setSavedPlays((prev) => prev.filter((p) => p.id !== id));
+  };
   const [dragged, setDragged] = useState({
     isDragging: false,
     id: null as string | null,
@@ -236,7 +268,7 @@ function App() {
     const coordinates = getCoordinates(e);
     setDragged({
       isDragging: true,
-      id: 'match-ball',
+      id: "match-ball",
       startX: coordinates.x,
       startY: coordinates.y,
       currentX: ballPosition.x,
@@ -272,14 +304,19 @@ function App() {
         const newX = Math.max(0, Math.min(100, dragged.currentX + deltaX));
         const newY = Math.max(0, Math.min(100, dragged.currentY + deltaY));
 
-        if(dragged.id === 'match-ball') {
+        if (dragged.id === "match-ball") {
           setBallPosition({ x: newX, y: newY });
         } else {
-          setPlayers(prev => prev.map(p =>
-            p.id === dragged.id
-              ? { ...p, position: { ...p.position, [phase]: { x: newX, y: newY } } }
-              : p
-          ));
+          setPlayers((prev) =>
+            prev.map((p) =>
+              p.id === dragged.id
+                ? {
+                    ...p,
+                    position: { ...p.position, [phase]: { x: newX, y: newY } },
+                  }
+                : p,
+            ),
+          );
         }
 
         setPlayers((prev) =>
@@ -351,33 +388,55 @@ function App() {
     };
   }, [dragged, phase, drawState, tool]);
 
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (isSimulating) {
+      intervalId = setInterval(() => {
+        if (!dragged.isDragging || dragged.id === "match-ball") {
+          setPlayers((prevPlayers) =>
+            nextPosition(prevPlayers, ballPosition, phase),
+          );
+        }
+      }, 33);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [isSimulating, dragged.isDragging, dragged.id, ballPosition, phase]);
+
   return (
     <div className="app-layout">
       <div className="mobile-tabs">
         <button
-          className={`tab-btn ${activeTab === 'field' ? 'active-tab' : ''}`}
-          onClick={() => setActiveTab('field')}
+          className={`tab-btn ${activeTab === "field" ? "active-tab" : ""}`}
+          onClick={() => setActiveTab("field")}
         >
           Field View
         </button>
         <button
-          className={`tab-btn ${activeTab === 'dashboard' ? 'active-tab' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
+          className={`tab-btn ${activeTab === "dashboard" ? "active-tab" : ""}`}
+          onClick={() => setActiveTab("dashboard")}
         >
           Dashboard View
         </button>
       </div>
-      <div className={`field-section ${activeTab === 'dashboard' ? 'mobile-hidden' : ''}`}>
+      <div
+        className={`field-section ${activeTab === "dashboard" ? "mobile-hidden" : ""}`}
+      >
         <div className="phase-overlay">
           <button
             onClick={() => setPhase("offensive")}
             className={`phase-btn ${phase === "offensive" ? "active-offense" : ""}`}
-          > In Possession
+          >
+            {" "}
+            In Possession
           </button>
           <button
             onClick={() => setPhase("defensive")}
             className={`phase-btn ${phase === "defensive" ? "active-defense" : ""}`}
-          > Out of Possession
+          >
+            {" "}
+            Out of Possession
           </button>
         </div>
         <FootballField
@@ -395,28 +454,62 @@ function App() {
           draggedId={dragged.id}
         />
       </div>
-      <div className={`dashboard-section ${activeTab === 'field' ? 'mobile-hidden' : ''}`}>
-        <div>
-          <h1
+      <div
+        className={`dashboard-section ${activeTab === "field" ? "mobile-hidden" : ""}`}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <h1
+              style={{
+                color: "white",
+                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              Tactical Engine
+            </h1>
+
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.75rem",
+                marginTop: "0.25rem",
+              }}
+            >
+              Football Manager Dashboard controls
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsSimulating(!isSimulating)}
+            className="save-play-btn"
             style={{
-              color: "white",
-              textTransform: "uppercase",
+              width: "auto",
+              backgroundColor: isSimulating
+                ? "var(--accent-rose)"
+                : "var(--accent-cyan)",
+              color: "var(--bg-darker)",
+              borderColor: "transparent",
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
             }}
           >
-            Tactical Engine
-          </h1>
-          <p
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "0.75rem",
-              marginTop: "0.25rem",
-            }}
-          >
-            Football Manager Dashboard controls
-          </p>
+            {isSimulating ? (
+              <Pause size={16} fill="currentColor" />
+            ) : (
+              <Play size={16} fill="currentColor" />
+            )}
+            {isSimulating ? "HALT SIM" : "PLAY SIM"}
+          </button>
         </div>
 
         <div className="tools-container">
@@ -447,22 +540,66 @@ function App() {
         </div>
 
         <div className="config-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <h2 className="tools-header" style={{ margin: 0 }}>Formations</h2>
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button 
-                onClick={() => setActiveTeam('home')}
-                style={{ fontSize: '0.625rem', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', background: activeTeam === 'home' ? 'var(--accent-cyan)' : 'transparent', color: activeTeam === 'home' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer' }}
-              >HOME</button>
-              <button 
-                onClick={() => setActiveTeam('away')}
-                style={{ fontSize: '0.625rem', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', background: activeTeam === 'away' ? 'var(--accent-rose)' : 'transparent', color: activeTeam === 'away' ? 'black' : 'var(--text-muted)', border: 'none', cursor: 'pointer' }}
-              >AWAY</button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <h2 className="tools-header" style={{ margin: 0 }}>
+              Formations
+            </h2>
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              <button
+                onClick={() => setActiveTeam("home")}
+                style={{
+                  fontSize: "0.625rem",
+                  padding: "0.25rem 0.5rem",
+                  borderRadius: "0.25rem",
+                  background:
+                    activeTeam === "home"
+                      ? "var(--accent-cyan)"
+                      : "transparent",
+                  color: activeTeam === "home" ? "black" : "var(--text-muted)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                HOME
+              </button>
+              <button
+                onClick={() => setActiveTeam("away")}
+                style={{
+                  fontSize: "0.625rem",
+                  padding: "0.25rem 0.5rem",
+                  borderRadius: "0.25rem",
+                  background:
+                    activeTeam === "away"
+                      ? "var(--accent-rose)"
+                      : "transparent",
+                  color: activeTeam === "away" ? "black" : "var(--text-muted)",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                AWAY
+              </button>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {Object.keys(FORMATIONS).map(f => (
-              <button key={f} onClick={() => applyFormation(f)} className="formation-btn">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "0.5rem",
+            }}
+          >
+            {Object.keys(FORMATIONS).map((f) => (
+              <button
+                key={f}
+                onClick={() => applyFormation(f)}
+                className="formation-btn"
+              >
                 {f}
               </button>
             ))}
@@ -477,13 +614,19 @@ function App() {
 
           {savedPlays.length > 0 && (
             <div className="playbook-list">
-              {savedPlays.map(play => (
+              {savedPlays.map((play) => (
                 <div key={play.id} className="play-item">
-                  <button onClick={() => loadPlay(play)} className="play-load-btn">
+                  <button
+                    onClick={() => loadPlay(play)}
+                    className="play-load-btn"
+                  >
                     {play.name}
                   </button>
-                  <button onClick={(e) => deletePlay(play.id, e)} className="play-del-btn flex items-center justify-center">
-                    <X size={14} /> 
+                  <button
+                    onClick={(e) => deletePlay(play.id, e)}
+                    className="play-del-btn flex items-center justify-center"
+                  >
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -494,55 +637,135 @@ function App() {
         <div className="config-card" style={{ flex: 1 }}>
           <h2 className="tools-header">Player Config</h2>
           {selectedPlayer ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
               <div>
-                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Player Name</label>
-                <input 
-                  type="text" 
+                <label
+                  style={{
+                    fontSize: "0.625rem",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Player Name
+                </label>
+                <input
+                  type="text"
                   value={selectedPlayer.name}
-                  onChange={(e) => updatePlayer('name', e.target.value)}
+                  onChange={(e) => updatePlayer("name", e.target.value)}
                   className="input-field"
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Jersey Number</label>
-                <input 
-                  type="number" 
+                <label
+                  style={{
+                    fontSize: "0.625rem",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Jersey Number
+                </label>
+                <input
+                  type="number"
                   value={selectedPlayer.number}
-                  onChange={(e) => updatePlayer('number', parseInt(e.target.value) || 1)}
-                  className="input-field" min="1" max="99"
+                  onChange={(e) =>
+                    updatePlayer("number", parseInt(e.target.value) || 1)
+                  }
+                  className="input-field"
+                  min="1"
+                  max="99"
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Playstyle Role</label>
-                <select 
+                <label
+                  style={{
+                    fontSize: "0.625rem",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Playstyle Role
+                </label>
+                <select
                   value={selectedPlayer.role}
-                  onChange={(e) => updatePlayer('role', e.target.value)}
+                  onChange={(e) => updatePlayer("role", e.target.value)}
                   className="input-field"
                 >
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
           ) : (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', opacity: 0.5, padding: '2rem 0' }}>
-              <Users size={32} style={{ marginBottom: '0.5rem' }} />
-              <p style={{ fontSize: '0.75rem', textAlign: 'center' }}>Select a player on the board<br/>to edit properties.</p>
+            <div
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-muted)",
+                opacity: 0.5,
+                padding: "2rem 0",
+              }}
+            >
+              <Users size={32} style={{ marginBottom: "0.5rem" }} />
+              <p style={{ fontSize: "0.75rem", textAlign: "center" }}>
+                Select a player on the board
+                <br />
+                to edit properties.
+              </p>
             </div>
           )}
         </div>
-        <button 
+        <button
           onClick={exportBoard}
-          style={{ width: '100%', padding: '0.75rem', backgroundColor: '#3b82f6', color: 'var(--bg-darker)', fontWeight: 'bold', border: 'none', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: 'auto' }}
+          style={{
+            width: "100%",
+            padding: "0.75rem",
+            backgroundColor: "#3b82f6",
+            color: "var(--bg-darker)",
+            fontWeight: "bold",
+            border: "none",
+            borderRadius: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            cursor: "pointer",
+            marginTop: "auto",
+          }}
         >
           <Download size={18} />
           Export Tactic PNG
         </button>
       </div>
       {toastMessage && (
-        <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--bg-panel)', color: 'white', padding: '0.5rem 1rem', borderRadius: '9999px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 50 }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "1.5rem",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "var(--bg-panel)",
+            color: "white",
+            padding: "0.5rem 1rem",
+            borderRadius: "9999px",
+            fontSize: "0.875rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            zIndex: 50,
+          }}
+        >
           <Check size={16} />
           {toastMessage}
         </div>
