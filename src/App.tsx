@@ -1,7 +1,7 @@
 import FootballField from "./components/FootballField";
 import "./App.css";
 import { useState, useRef, useEffect } from "react";
-import { FORMATIONS, ROLES, generateInitialPlayers } from "./constants";
+import { FORMATIONS, ROLES, PLAYING_STYLES , generateInitialPlayers } from "./constants";
 import type {
   Player,
   Phase,
@@ -88,6 +88,7 @@ function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"field" | "dashboard">("field");
   const [isSimulating, setIsSimulating] = useState(false);
+  const [playingStyle, setPlayingStyle] = useState(PLAYING_STYLES[0]);
   const [ballPosition, setBallPosition] = useState<Coordinates>(loadSavedBall);
   const [savedPlays, setSavedPlays] = useState<SavedPlay[]>(loadSavedPlays);
   const [drawState, setDrawState] = useState({
@@ -388,21 +389,17 @@ function App() {
     };
   }, [dragged, phase, drawState, tool]);
 
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    if (isSimulating) {
-      intervalId = setInterval(() => {
-        if (!dragged.isDragging || dragged.id === "match-ball") {
-          setPlayers((prevPlayers) =>
-            nextPosition(prevPlayers, ballPosition, phase),
-          );
-        }
-      }, 33);
-    }
-
-    return () => clearInterval(intervalId);
-  }, [isSimulating, dragged.isDragging, dragged.id, ballPosition, phase]);
+    useEffect(() => {
+      let intervalId: NodeJS.Timeout;
+      if (isSimulating) {
+        intervalId = setInterval(() => {
+          if (!dragged.isDragging || dragged.id === 'match-ball') {
+            setPlayers(prev => nextPosition(prev, ballPosition, phase, playingStyle));
+          }
+        }, 33);
+      }
+      return () => clearInterval(intervalId);
+    }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id]);
 
   return (
     <div className="app-layout">
@@ -540,6 +537,18 @@ function App() {
         </div>
 
         <div className="config-card">
+          <h2 className="tools-header">Manager Playstyle</h2>
+          <select 
+            value={playingStyle}
+            onChange={(e) => setPlayingStyle(e.target.value)}
+            className="input-field"
+            style={{ fontWeight: 'bold' }}
+          >
+            {PLAYING_STYLES.map(ps => <option key={ps} value={ps}>{ps}</option>)}
+          </select>
+        </div>
+
+        <div className="config-card">
           <div
             style={{
               display: "flex",
@@ -606,7 +615,7 @@ function App() {
           </div>
         </div>
 
-        <div className="config-">
+        <div className="config-card">
           <h2 className="tools-header">Playbook</h2>
           <button onClick={saveCurrentPlay} className="save-play-btn">
             Save current Board

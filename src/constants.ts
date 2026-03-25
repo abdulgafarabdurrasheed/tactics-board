@@ -93,3 +93,11 @@ export const generateInitialPlayers = (): Player[] => {
   });
   return players;
 };
+
+export const PLAYING_STYLES = [
+    "Possession Game",
+    "Quick Counter",
+    "Long Ball Counter",
+    "Out Wide",
+    "Long Ball",
+];
