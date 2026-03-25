@@ -1,5 +1,6 @@
-import type { Player, Phase, ToolType, Arrow, Coordinates } from "../types";
+import type { Player, Phase, ToolType, Arrow, Coordinates, TeamType } from "../types";
 import PlayerCard from "./PlayerCard";
+import { passVisionCalc } from '../simulationEngine';
 import "./FootballField.css";
 import { PASSING_RANGES } from "../constants";
 
@@ -22,6 +23,7 @@ interface FootballFieldProps {
   ballPosition: Coordinates;
   onBallPointerDown: (e: React.PointerEvent) => void;
   draggedId: string | null;
+  activeTeam: TeamType;
 }
 
 export default function FootballField({
@@ -37,10 +39,12 @@ export default function FootballField({
   ballPosition,
   onBallPointerDown,
   draggedId,
+  activeTeam
 }: FootballFieldProps) {
 
   const activePlayer = players.find(p => p.id === selectedPlayerId);
   const passingRange = activePlayer ? (PASSING_RANGES[activePlayer.role] || "12rem") : "0";
+  const passLines = passVisionCalc(ballPosition, players, phase, activeTeam);
 
   return (
     <div
@@ -178,6 +182,19 @@ export default function FootballField({
             opacity="0.8"
           />
         )}
+
+        <g opacity="0.4">
+          {passLines.filter(line => line.isValid).map(line => (
+            <line
+              key={`vision-${line.id}`}
+              x1={`${ballPosition.x}%`} y1={`${ballPosition.y}%`}
+              x2={`${line.target.x}%`} y2={`${line.target.y}%`}
+              stroke={line.isBlocked ? '#f43f5e' : '#22d3ee'}
+              strokeWidth={line.isBlocked ? '1' : '2'}
+              strokeDasharray="4,4"
+            />
+          ))}
+        </g>
       </svg>
 
       <div

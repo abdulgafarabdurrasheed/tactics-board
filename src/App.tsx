@@ -390,7 +390,7 @@ function App() {
   }, [dragged, phase, drawState, tool]);
 
     useEffect(() => {
-      let intervalId: NodeJS.Timeout;
+      let intervalId: ReturnType<typeof setInterval>;
       if (isSimulating) {
         intervalId = setInterval(() => {
           if (!dragged.isDragging || dragged.id === 'match-ball') {
@@ -449,6 +449,7 @@ function App() {
           ballPosition={ballPosition}
           onBallPointerDown={handleBallPosition}
           draggedId={dragged.id}
+          activeTeam={activeTeam}
         />
       </div>
       <div

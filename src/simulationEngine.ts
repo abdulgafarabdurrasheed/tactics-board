@@ -1,4 +1,48 @@
-import type { Player, Coordinates } from "./types";
+import type { Player, Coordinates, Phase, TeamType } from "./types";
+
+function distance(p: Coordinates, v: Coordinates, w: Coordinates) {
+    let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+    if (l2 === 0) return Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2);
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t =Math.max(0, Math.min(1, t));
+    return Math.pow(p.x - (v.x + t * (w.x - v.x)), 2) + Math.pow(p.y - (v.y + t * (w.y - v.y)), 2);
+}
+
+export interface PassVision {
+    id: string;
+    target: Coordinates;
+    isBlocked: boolean;
+    isValid: boolean;
+}
+
+export function passVisionCalc(
+    ball: Coordinates,
+    players: Player[],
+    phase: Phase,
+    attackingTeam: TeamType
+): PassVision[] {
+    const teammates = players.filter(p => p.team === attackingTeam);
+    const opponents = players.filter(p => p.team !== attackingTeam);
+    const INTERCEPTION_RADIUS = 16;
+
+    return teammates.map(teammate => {
+        const target = teammate.position[phase];
+
+        const isBlocked = opponents.some(def => {
+            const dPos = def.position[phase];
+            return distance(dPos, ball, target) < INTERCEPTION_RADIUS
+        });
+
+        const distanceToBall = Math.pow(target.x - ball.x, 2) + Math.pow(target.y - ball.y, 2)
+
+        return {
+            id: teammate.id,
+            target,
+            isBlocked,
+            isValid: distanceToBall > 9
+        };
+    });
+}
 
 const lerp = (start: number, end: number, speed: number) => {
   return start + (end - start) * speed;
