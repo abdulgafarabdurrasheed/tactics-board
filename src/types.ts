@@ -43,3 +43,5 @@ export interface SavedPlay {
     ballPosition: Coordinates;
     phase: Phase;
 }
+
+export type HeatmapView = 'off' | 'home' | "away" | "both";

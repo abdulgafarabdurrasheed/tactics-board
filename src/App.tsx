@@ -12,6 +12,8 @@ import type {
   SavedPlay,
 } from "./types";
 import html2canvas from "html2canvas";
+import type { HeatmapView } from "./types";
+import { createEmptyGrid, stampPositions, type HeatGrid } from "./heatmapEngine";
 import {
   Move,
   Navigation,
@@ -23,6 +25,7 @@ import {
   Check,
   Play,
   Pause,
+  Flame,
 } from "lucide-react";
 import { nextPosition } from "./simulationEngine";
 
@@ -94,6 +97,9 @@ function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [frames, setFrames] = useState<{ players: Player[], ballPosition: Coordinates }[]>([]);
   const [replayIndex, setReplayIndex] = useState<number | null>(null);
+  const [heatmapView, setHeatmapView] = useState<HeatmapView>("off");
+  const [homeGrid, setHomeGrid] = useState<HeatGrid>(createEmptyGrid);
+  const [awayGrid, setAwayGrid] = useState<HeatGrid>(createEmptyGrid);
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -394,6 +400,28 @@ function App() {
   }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id]);
 
   useEffect(() => {
+    if(!isSimulating || heatmapView === 'off') return;
+    const interval = setInterval(() => {
+      const homePlayers = players
+        .filter(p => p.team === 'home')
+        .map(p => p.position[phase])
+      const awayPlayers = players
+        .filter(p => p.team === 'away')
+        .map(p => p.position[phase])
+
+      setHomeGrid(prev => stampPositions(prev, homePlayers));
+      setAwayGrid(prev => stampPositions(prev, awayPlayers))
+      
+    }, 200)
+    return () => clearInterval(interval)
+  }, [isSimulating, players, phase, heatmapView])
+
+  const clearHeatmap = () => {
+    setHomeGrid(createEmptyGrid());
+    setAwayGrid(createEmptyGrid());
+  };
+
+  useEffect(() => {
     if (!isRecording) return;
     const interval = setInterval(() => {
       setFrames(prev => [...prev, {
@@ -456,6 +484,9 @@ function App() {
           onBallPointerDown={handleBallPosition}
           draggedId={dragged.id}
           activeTeam={activeTeam}
+          heatmapView={heatmapView}
+          homeGrid={homeGrid}
+          awayGrid={awayGrid}
         />
       </div>
       <div
@@ -541,6 +572,43 @@ function App() {
               <Trash2 size={18} />
             </button>
           </div>
+        </div>
+
+        <div className="config-card">
+            <h2 className="tools-header" style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+              <Flame size={14} /> Heatmap
+            </h2>
+            <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem' }}>
+              {(['off', 'home', 'away', 'both'] as HeatmapView[]).map(view => (
+                <button
+                  key={view}
+                  onClick={() => setHeatmapView(view)}
+                  style={{
+                  flex: 1,
+                  padding: '0.375rem',
+                  fontSize: '0.625rem',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  borderRadius: '0.25rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: heatmapView === view ? view === 'home' ? 'var(--accent-cyan)' : view === 'away' ? 'var(--accent-rose)' : view === 'both' ? '#a78bfa' : 'var(--bg-panel)' : 'transparent',
+                  color: heatmapView === view ? 'black' : 'var(--text-muted)',
+                }}
+                >
+                  {view}
+                </button>
+              ))}
+            </div>
+            {heatmapView !== 'off' && (
+            <button
+              onClick={clearHeatmap}
+              className="formation-btn"
+              style={{ width: '100%', color: 'var(--accent-rose)', borderColor: 'var(--accent-rose)' }}
+            >
+              Clear Heatmap
+            </button>
+          )}
         </div>
 
         <div className="config-card">

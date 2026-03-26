@@ -1,6 +1,8 @@
-import type { Player, Phase, ToolType, Arrow, Coordinates, TeamType } from "../types";
+import type { Player, Phase, ToolType, Arrow, Coordinates, TeamType, HeatmapView } from "../types";
+import { useEffect, useRef } from "react";
 import PlayerCard from "./PlayerCard";
 import { passVisionCalc } from '../simulationEngine';
+import { renderHeatmap, type HeatGrid } from "../heatmapEngine";
 import "./FootballField.css";
 import { PASSING_RANGES } from "../constants";
 
@@ -24,6 +26,9 @@ interface FootballFieldProps {
   onBallPointerDown: (e: React.PointerEvent) => void;
   draggedId: string | null;
   activeTeam: TeamType;
+  heatmapView: HeatmapView;
+  homeGrid: HeatGrid;
+  awayGrid: HeatGrid;
 }
 
 export default function FootballField({
@@ -39,12 +44,42 @@ export default function FootballField({
   ballPosition,
   onBallPointerDown,
   draggedId,
-  activeTeam
+  activeTeam,
+  heatmapView,
+  homeGrid,
+  awayGrid
 }: FootballFieldProps) {
 
   const activePlayer = players.find(p => p.id === selectedPlayerId);
   const passingRange = activePlayer ? (PASSING_RANGES[activePlayer.role] || "12rem") : "0";
   const passLines = passVisionCalc(ballPosition, players, phase, activeTeam);
+
+  const homeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const awayCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (heatmapView === 'off') return;
+
+    if ((heatmapView === 'home' || heatmapView === 'both') && homeCanvasRef.current) {
+      const canvas = homeCanvasRef.current;
+      const container = canvas.parentElement;
+      if (container) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+      }
+      renderHeatmap(canvas, homeGrid, 'cyan');
+    }
+
+    if ((heatmapView === 'away' || heatmapView === 'both') && awayCanvasRef.current) {
+      const canvas = awayCanvasRef.current;
+      const container = canvas.parentElement;
+      if (container) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+      }
+      renderHeatmap(canvas, awayGrid, "rose")
+    }
+  }, [heatmapView, homeGrid, awayGrid])
 
   return (
     <div
@@ -196,6 +231,18 @@ export default function FootballField({
           ))}
         </g>
       </svg>
+
+      {heatmapView !== 'off' && (
+        <>
+          {(heatmapView === 'home' || heatmapView === 'both') && (
+            <canvas ref={homeCanvasRef} className="heatmap-canvas" />
+          )}
+          {(heatmapView === 'away' || heatmapView === 'both') && (
+            <canvas ref={awayCanvasRef} className="heatmap-canvas" />
+          )}
+        </>
+      )}
+
 
       <div
         style={{
