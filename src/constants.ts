@@ -6,7 +6,7 @@ export const ROLES = [
     "Goal Poacher", "Fox in the Box", "Dummy Runner", "Deep-Lying Forward",
     "Creative Playmaker", "Prolific Winger", "Roaming Flank", "Cross Specialist",
     "Classic No. 10", "Hole Player", "Box-to-Box", "Orchestrator", "Anchor Man",
-    "The Destroyer", "Build up", "Extra Frontman", "Offensive Fullback",
+    "The Destroyer", "Build Up", "Extra Frontman", "Offensive Fullback",
     "Defensive Fullback", "Offensive Goalkeeper", "Defensive Goalkeeper"
 ];
 
@@ -49,16 +49,16 @@ export const FORMATIONS: Record<string, FormationPosition[]> = {
     ],
     "4-2-1-3": [
         { n: 1, r: "Offensive Goalkeeper", x: 50, y: 90 },
-        { n: 3, r: "Offensive Fullback", x: 10, y: 75 },
-        { n: 4, r: "Build Up", x: 40, y: 80 },
-        { n: 5, r: "The Destroyer", x: 60, y: 80 },
-        { n: 2, r: "Defensive Fullback", x: 90, y: 75 },
-        { n: 8, r: "Box-to-Box", x: 30, y: 60 },
-        { n: 6, r: "Anchor Man", x: 70, y: 60 },
-        { n: 10, r: "Classic No. 10", x: 50, y: 50 },
-        { n: 7, r: "Prolific Winger", x: 20, y: 40 },
-        { n: 9, r: "Goal Poacher", x: 50, y: 30 },
-        { n: 11, r: "Roaming Flank", x: 80, y: 40 }
+        { n: 3, r: "Offensive Fullback", x: 12, y: 72 },
+        { n: 4, r: "Build Up", x: 38, y: 80 },
+        { n: 5, r: "The Destroyer", x: 62, y: 80 },
+        { n: 2, r: "Defensive Fullback", x: 88, y: 72 },
+        { n: 8, r: "Box-to-Box", x: 35, y: 62 },
+        { n: 6, r: "Anchor Man", x: 65, y: 62 },
+        { n: 10, r: "Classic No. 10", x: 50, y: 45 },
+        { n: 7, r: "Prolific Winger", x: 25, y: 32 },
+        { n: 9, r: "Goal Poacher", x: 50, y: 22 },
+        { n: 11, r: "Roaming Flank", x: 75, y: 32 }
     ],
     "3-5-2": [
         { n: 1, r: "Offensive Goalkeeper", x: 50, y: 92 },
@@ -71,7 +71,7 @@ export const FORMATIONS: Record<string, FormationPosition[]> = {
         { n: 7, r: "Roaming Flank", x: 85, y: 55 },
         { n: 10, r: "Classic No. 10", x: 50, y: 45 },
         { n: 9, r: "Goal Poacher", x: 35, y: 25 },
-        { n: 10, r: "Deep-Lying Forward", x: 65, y: 25 }
+        { n: 11, r: "Deep-Lying Forward", x: 65, y: 25 }
     ]
 }
 

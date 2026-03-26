@@ -4,7 +4,7 @@ function distance(p: Coordinates, v: Coordinates, w: Coordinates) {
     let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
     if (l2 === 0) return Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2);
     let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-    t =Math.max(0, Math.min(1, t));
+    t = Math.max(0, Math.min(1, t));
     return Math.pow(p.x - (v.x + t * (w.x - v.x)), 2) + Math.pow(p.y - (v.y + t * (w.y - v.y)), 2);
 }
 
@@ -27,141 +27,163 @@ export function passVisionCalc(
 
     return teammates.map(teammate => {
         const target = teammate.position[phase];
-
         const isBlocked = opponents.some(def => {
             const dPos = def.position[phase];
-            return distance(dPos, ball, target) < INTERCEPTION_RADIUS
+            return distance(dPos, ball, target) < INTERCEPTION_RADIUS;
         });
-
-        const distanceToBall = Math.pow(target.x - ball.x, 2) + Math.pow(target.y - ball.y, 2)
-
-        return {
-            id: teammate.id,
-            target,
-            isBlocked,
-            isValid: distanceToBall > 9
-        };
+        const distanceToBall = Math.pow(target.x - ball.x, 2) + Math.pow(target.y - ball.y, 2);
+        return { id: teammate.id, target, isBlocked, isValid: distanceToBall > 9 };
     });
 }
 
-const lerp = (start: number, end: number, speed: number) => {
-  return start + (end - start) * speed;
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+
+interface RoleProfile {
+  baseY: number; laneX: number;
+  ballFollowX: number; ballFollowY: number;
+  attackPush: number; defensePull: number;
+  speed: number; compact: number;
+}
+
+const P: Record<string, RoleProfile> = {
+  "Goal Poacher":        { baseY: 18, laneX: -1, ballFollowX: 0.45, ballFollowY: 0.15, attackPush: -10, defensePull: 6,  speed: 1.4,  compact: 0.15 },
+  "Fox in the Box":      { baseY: 20, laneX: 50, ballFollowX: 0.30, ballFollowY: 0.12, attackPush: -8,  defensePull: 8,  speed: 1.2,  compact: 0.15 },
+  "Dummy Runner":        { baseY: 22, laneX: -1, ballFollowX: 0.20, ballFollowY: 0.18, attackPush: -14, defensePull: 6,  speed: 1.6,  compact: 0.2  },
+  "Deep-Lying Forward":  { baseY: 28, laneX: 50, ballFollowX: 0.55, ballFollowY: 0.30, attackPush: -4,  defensePull: 10, speed: 1.1,  compact: 0.3  },
+  "Creative Playmaker":  { baseY: 38, laneX: -1, ballFollowX: 0.60, ballFollowY: 0.35, attackPush: -6,  defensePull: 8,  speed: 1.0,  compact: 0.35 },
+  "Classic No. 10":      { baseY: 40, laneX: 50, ballFollowX: 0.55, ballFollowY: 0.40, attackPush: -6,  defensePull: 8,  speed: 1.1,  compact: 0.4  },
+  "Hole Player":         { baseY: 36, laneX: -1, ballFollowX: 0.50, ballFollowY: 0.45, attackPush: -10, defensePull: 6,  speed: 1.3,  compact: 0.3  },
+  "Prolific Winger":     { baseY: 30, laneX: -1, ballFollowX: 0.12, ballFollowY: 0.22, attackPush: -10, defensePull: 14, speed: 1.5,  compact: 0.1  },
+  "Roaming Flank":       { baseY: 32, laneX: -1, ballFollowX: 0.30, ballFollowY: 0.28, attackPush: -8,  defensePull: 10, speed: 1.3,  compact: 0.2  },
+  "Cross Specialist":    { baseY: 34, laneX: -1, ballFollowX: 0.10, ballFollowY: 0.18, attackPush: -10, defensePull: 14, speed: 1.2,  compact: 0.1  },
+  "Box-to-Box":          { baseY: 50, laneX: -1, ballFollowX: 0.55, ballFollowY: 0.50, attackPush: -5,  defensePull: 5,  speed: 1.4,  compact: 0.5  },
+  "Orchestrator":        { baseY: 50, laneX: 50, ballFollowX: 0.45, ballFollowY: 0.25, attackPush: -2,  defensePull: 8,  speed: 0.85, compact: 0.5  },
+  "Anchor Man":          { baseY: 55, laneX: 50, ballFollowX: 0.30, ballFollowY: 0.15, attackPush: -1,  defensePull: 8,  speed: 0.9,  compact: 0.55 },
+  "The Destroyer":       { baseY: 52, laneX: -1, ballFollowX: 0.45, ballFollowY: 0.40, attackPush: -2,  defensePull: 5,  speed: 1.3,  compact: 0.5  },
+  "Build Up":            { baseY: 72, laneX: -1, ballFollowX: 0.25, ballFollowY: 0.10, attackPush: -6,  defensePull: 5,  speed: 1.0,  compact: 0.55 },
+  "Extra Frontman":      { baseY: 65, laneX: -1, ballFollowX: 0.30, ballFollowY: 0.20, attackPush: -8,  defensePull: 8,  speed: 1.1,  compact: 0.45 },
+  "Offensive Fullback":  { baseY: 60, laneX: -1, ballFollowX: 0.15, ballFollowY: 0.25, attackPush: -15, defensePull: 10, speed: 1.4,  compact: 0.25 },
+  "Defensive Fullback":  { baseY: 72, laneX: -1, ballFollowX: 0.12, ballFollowY: 0.10, attackPush: -3,  defensePull: 6,  speed: 1.0,  compact: 0.4  },
+  "Offensive Goalkeeper": { baseY: 88, laneX: 50, ballFollowX: 0.25, ballFollowY: 0.08, attackPush: -8, defensePull: 3, speed: 1.5, compact: 0.05 },
+  "Defensive Goalkeeper": { baseY: 93, laneX: 50, ballFollowX: 0.12, ballFollowY: 0.03, attackPush: -2, defensePull: 1, speed: 1.5, compact: 0.05 },
 };
+
+const FALLBACK: RoleProfile = {
+  baseY: 50, laneX: -1, ballFollowX: 0.3, ballFollowY: 0.3,
+  attackPush: 0, defensePull: 0, speed: 1.0, compact: 0.3,
+};
+
+interface StyleMod {
+  compactMul: number;   
+  vShift: number;       
+  widePush: number;     
+  pressLine: number;    
+  ballPull: number;     
+  tempoMul: number;
+}
+
+const STYLES: Record<string, StyleMod> = {
+  "Possession Game":   { compactMul: 1.4, vShift: -4, widePush: 5,  pressLine: -5, ballPull: 0.12,  tempoMul: 0.85 },
+  "Quick Counter":     { compactMul: 0.7, vShift: 5,  widePush: 8,  pressLine: 10, ballPull: -0.05, tempoMul: 1.5  },
+  "Long Ball Counter": { compactMul: 0.6, vShift: 8,  widePush: 3,  pressLine: 12, ballPull: -0.08, tempoMul: 1.3  },
+  "Out Wide":          { compactMul: 1.0, vShift: -2, widePush: 15, pressLine: -3, ballPull: 0.0,   tempoMul: 1.0  },
+  "Long Ball":         { compactMul: 0.7, vShift: 10, widePush: 2,  pressLine: 15, ballPull: -0.08, tempoMul: 1.1  },
+};
+
+const DFLT_STYLE: StyleMod = { compactMul: 1, vShift: 0, widePush: 0, pressLine: 0, ballPull: 0, tempoMul: 1 };
+
+const WIDE_ROLES = new Set([
+  "Prolific Winger", "Cross Specialist", "Roaming Flank",
+  "Offensive Fullback", "Defensive Fullback",
+]);
+
+const GK_ROLES = new Set(["Offensive Goalkeeper", "Defensive Goalkeeper"]);
+
+let tick = 0;
 
 export const nextPosition = (
   players: Player[],
   ballPosition: Coordinates,
-  currentPhase: "offensive" | "defensive",
+  currentPhase: Phase,
   managerStyle: string,
 ): Player[] => {
-  return players.map((p) => {
-    const currentPosition = p.position[currentPhase];
-    let targetX = currentPosition.x;
-    let targetY = currentPosition.y;
-    let speed = 0.02;
+  tick++;
+  const style = STYLES[managerStyle] || DFLT_STYLE;
 
+  return players.map((p, idx) => {
+    const cur = p.position[currentPhase];
+    const prof = P[p.role] || FALLBACK;
     const isHome = p.team === "home";
-    const attackingY = isHome ? 0 : 100;
-    const defendingY = isHome ? 100 : 0;
-    const ballDistance = Math.sqrt(
-      Math.pow(ballPosition.x - currentPosition.x, 2) +
-        Math.pow(ballPosition.y - currentPosition.y, 2),
-    );
 
-    switch (p.role) {
-      case "Goal Poacher":
-      case "Fox in the Box":
-        targetY = attackingY + (isHome ? 15 : -15);
-        targetX = lerp(currentPosition.x, ballPosition.x, 0.4);
-        speed = 0.04;
-        break;
+    const bx = isHome ? ballPosition.x : 100 - ballPosition.x;
+    const by = isHome ? ballPosition.y : 100 - ballPosition.y;
+    const cx = isHome ? cur.x : 100 - cur.x;
+    const cy = isHome ? cur.y : 100 - cur.y;
 
-      case "Prolific Winger":
-      case "Roaming Flank":
-      case "Cross Specialist":
-        const isLeft = currentPosition.x < 50;
-        targetX = isLeft ? 15 : 85;
-        targetY = lerp(currentPosition.y, ballPosition.y + (isHome ? -10 : 10), 0.5);
-        speed = 0.05;
-        break;
+    let tx: number, ty: number;
+    if (GK_ROLES.has(p.role)) {
+      tx = lerp(50, bx, 0.3);
+      ty = currentPhase === "offensive"
+        ? prof.baseY + (p.role === "Offensive Goalkeeper" ? -8 : -3)
+        : prof.baseY;
+      if (by > 72) {
+        ty = lerp(ty, by - 5, 0.3);
+        tx = lerp(tx, bx, 0.5);
+      }
+    } else {
+      ty = prof.baseY;
+      const isWide = WIDE_ROLES.has(p.role);
+      const isLeft = cx < 50;
 
-      case "Box-to-Box":
-      case "Hole Player":
-        targetX = lerp(currentPosition.x, ballPosition.x, 0.6);
-        targetY = ballPosition.y + (isHome ? 15 : -15);
-        speed = 0.06;
-        break;
+      if (prof.laneX >= 0) {
+        tx = prof.laneX;
+      } else if (isWide) {
+        tx = isLeft ? 18 : 82;
+      } else {
+        tx = cx;
+      }
 
-      case "Anchor Man":
-      case "The Destroyer":
-      case "Build Up":
-        targetX = lerp(currentPosition.x, ballPosition.x, 0.3);
-        targetY = defendingY + (isHome ? -35 : 35);
-        speed = 0.03;
-        break;
-      case "Offensive Goalkeeper":
-      case "Defensive Goalkeeper":
-        targetX = 50;
-        targetY = defendingY + (isHome ? -5 : 5);
-        if (Math.abs(ballPosition.y - defendingY) < 35) {
-          targetY = defendingY + (isHome ? -15 : 15);
-          targetX = lerp(50, ballPosition.x, 0.4);
-        }
-        speed = 0.08;
-        break;
+      const fx = clamp(prof.ballFollowX + style.ballPull, 0, 0.8);
+      const fy = clamp(prof.ballFollowY + style.ballPull * 0.5, 0, 0.7);
+      tx = lerp(tx, bx, fx);
+      ty = lerp(ty, by, fy);
 
-      default:
-        targetX = currentPosition.x;
-        targetY = currentPosition.y;
-        speed = 0;
-    }
+      tx += (bx - 50) * 0.25;
 
-    if (isHome && currentPhase === "offensive") {
-      if (managerStyle === "Possession Game") {
-        if (ballDistance > 15 && p.role !== "Offensive Goalkeeper") {
-          targetX = lerp(targetX, ballPosition.x, 0.3);
-          targetY = lerp(targetY, ballPosition.y, 0.3);
-        }
-      } else if (managerStyle === "Quick Counter") {
-        if (
-          [
-            "Goal Poacher",
-            "Fox in the Box",
-            "Prolific Winger",
-            "Hole Player",
-          ].includes(p.role)
-        ) {
-          targetY = 5;
-          speed *= 1.8;
-        }
-      } else if (managerStyle === "Out Wide") {
-        if (
-          [
-            "Prolific Winger",
-            "Cross Specialist",
-            "Offensive Fullback",
-          ].includes(p.role)
-        ) {
-          const isLeftSide = currentPosition.x < 50;
-          targetX = isLeftSide ? 2 : 98;
-        }
-      } else if (managerStyle === "Long Ball") {
-        if (
-          !["Goal Poacher", "Fox in the Box"].includes(p.role) &&
-          p.role !== "Offensive Goalkeeper"
-        ) {
-          targetY = lerp(targetY, defendingY - 40, 0.5);
+      if (currentPhase === "offensive") {
+        ty += prof.attackPush + style.vShift;
+        if (isWide) tx += isLeft ? -style.widePush : style.widePush;
+      } else {
+        ty += prof.defensePull + style.pressLine;
+        tx = lerp(tx, 50, prof.compact * style.compactMul * 0.25);
+        const d = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
+        if (d < 28 && prof.compact < 0.45) {
+          tx = lerp(tx, bx, 0.25);
+          ty = lerp(ty, by, 0.18);
         }
       }
     }
 
+    tx = clamp(tx, 3, 97);
+    ty = clamp(ty, 3, 97);
+    if (!isHome) { tx = 100 - tx; ty = 100 - ty; }
+
+    const dx = tx - cur.x, dy = ty - cur.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const spd = clamp(0.035 * prof.speed * style.tempoMul + dist * 0.0015, 0.015, 0.10);
+
+    const seed = idx * 137.5 + (isHome ? 0 : 500);
+    const jx = Math.sin(tick * 0.05 + seed) * 0.12;
+    const jy = Math.cos(tick * 0.063 + seed) * 0.12;
     return {
       ...p,
       position: {
         ...p.position,
         [currentPhase]: {
-          x: lerp(currentPosition.x, targetX, Math.min(speed, 1)),
-          y: lerp(currentPosition.y, targetY, Math.min(speed, 1)),
+          x: clamp(lerp(cur.x, tx, spd) + jx, 1, 99),
+          y: clamp(lerp(cur.y, ty, spd) + jy, 1, 99),
         },
       },
     };

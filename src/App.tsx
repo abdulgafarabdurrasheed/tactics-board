@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { nextPosition } from "./simulationEngine";
 
-const SAVED_PLAYERS_KEY = "tactics_board_layers";
+const SAVED_PLAYERS_KEY = "tactics_board_players";
 const SAVED_ARROWS_KEY = "tactics_board_arrows";
 const SAVED_BALL_KEY = "tactics_board_ball";
 const SAVED_PLAYS_KEY = "tactics_board_saved_plays";
@@ -148,7 +148,7 @@ function App() {
   const exportBoard = async () => {
     showToast("Preparing export...");
     try {
-      const element = document.getElementById("pitch-export-area");
+      const element = document.getElementById("field-export-area");
       if (!element) return;
 
       const canvas = await html2canvas(element, {
@@ -322,17 +322,6 @@ function App() {
             ),
           );
         }
-
-        setPlayers((prev) =>
-          prev.map((p) =>
-            p.id === dragged.id
-              ? {
-                  ...p,
-                  position: { ...p.position, [phase]: { x: newX, y: newY } },
-                }
-              : p,
-          ),
-        );
 
         setDragged((prev) => ({
           ...prev,
