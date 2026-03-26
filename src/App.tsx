@@ -91,6 +91,9 @@ function App() {
   const [playingStyle, setPlayingStyle] = useState(PLAYING_STYLES[0]);
   const [ballPosition, setBallPosition] = useState<Coordinates>(loadSavedBall);
   const [savedPlays, setSavedPlays] = useState<SavedPlay[]>(loadSavedPlays);
+  const [isRecording, setIsRecording] = useState(false);
+  const [frames, setFrames] = useState<{ players: Player[], ballPosition: Coordinates }[]>([]);
+  const [replayIndex, setReplayIndex] = useState<number | null>(null);
   const [drawState, setDrawState] = useState({
     isDrawing: false,
     startX: 0,
@@ -389,7 +392,7 @@ function App() {
     };
   }, [dragged, phase, drawState, tool]);
 
-    useEffect(() => {
+  useEffect(() => {
       let intervalId: ReturnType<typeof setInterval>;
       if (isSimulating) {
         intervalId = setInterval(() => {
@@ -399,7 +402,21 @@ function App() {
         }, 33);
       }
       return () => clearInterval(intervalId);
-    }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id]);
+  }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id]);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    const interval = setInterval(() => {
+      setFrames(prev => [...prev, {
+        players: JSON.parse(JSON.stringify(players)),
+        ballPosition: { ...ballPosition }
+      }]);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isRecording, players, ballPosition])
+  
+  const displayPlayers = (replayIndex !== null && frames[replayIndex]) ? frames[replayIndex].players : players;
+  const displayBall = (replayIndex !== null && frames[replayIndex]) ? frames[replayIndex].ballPosition : ballPosition;
 
   return (
     <div className="app-layout">
@@ -437,7 +454,7 @@ function App() {
           </button>
         </div>
         <FootballField
-          players={players}
+          players={displayPlayers}
           phase={phase}
           fieldRef={fieldRef}
           selectedPlayerId={selectedPlayerId}
@@ -446,7 +463,7 @@ function App() {
           arrows={arrows}
           drawState={drawState}
           tool={tool}
-          ballPosition={ballPosition}
+          ballPosition={displayBall}
           onBallPointerDown={handleBallPosition}
           draggedId={dragged.id}
           activeTeam={activeTeam}
@@ -756,6 +773,50 @@ function App() {
           <Download size={18} />
           Export Tactic PNG
         </button>
+      
+          <div className="config-card">
+            <h2 className="tools-header text-rose-500 flex items-center gap-2">
+              Action Replay
+              {isRecording && <span style={{ width: 8, height: 8, background: '#f43f5e', borderRadius: '50%', animation: 'pulse-radar 1s infinite' }}></span>}
+            </h2>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button
+                onClick={() => {
+                  if (!isRecording) setFrames([]);
+                  setIsRecording(!isRecording)
+                  setReplayIndex(null);
+                }}
+                style={{ flex: 1, padding: '0.5rem', background: isRecording ? 'var(--bg-dark)' : 'rgba(244, 63, 94, 0.1)', color: isRecording ? 'var(--text-muted)' : 'var(--accent-rose)', border: `1px solid ${isRecording ? 'var(--bg-panel)' : 'var(--accent-rose)'}`, borderRadius: '0.375rem', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+              {isRecording ? '⏹ Stop Recording' : '⏺ Record Play'}
+              </button>  
+            </div>
+
+            {frames.length > 0 && !isRecording && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>
+                  Scrub Timeline ({frames.length} frames)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={frames.length - 1}
+                  value={replayIndex === null ? frames.length - 1 : replayIndex}
+                  onChange={(e) => setReplayIndex(Number(e.target.value))}
+                  style={{ width: '100%', cursor: 'ew-resize' }}
+                />
+
+                <button
+                  onClick={() => setReplayIndex(null)}
+                  style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '0.25rem' }}
+                >
+                  &larr; Return to Present
+                </button>
+              </div>
+            )}
+
+          </div>
       </div>
       {toastMessage && (
         <div
