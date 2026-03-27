@@ -21,10 +21,8 @@ export const updatePossession = (
     
     players.forEach(player => {
         const pos = player.position[phase];
-        const targetX = player.team === 'home' ? pos.x : 100 - pos.x;
-        const targetY = player.team === 'home' ? pos.y : 100 - pos.y;
 
-        const distSq = getDistanceSq({ x: targetX, y: targetY }, currentBall.position);
+        const distSq = getDistanceSq(pos, currentBall.position);
 
         if (distSq < minDistanceSq) {
             minDistanceSq = distSq;

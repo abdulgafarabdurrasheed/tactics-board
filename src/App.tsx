@@ -410,11 +410,7 @@ function App() {
               const holder = nextPlayers.find(p => p.id === possessionBall.holder);
               if (holder) {
                 const hPos = holder.position[phase];
-
-                const targetX = holder.team === 'home' ? hPos.x : 100 - hPos.x;
-                const targetY = holder.team === 'home' ? hPos.y : 100 - hPos.y;
-
-                setBallPosition({ x: targetX, y: targetY + 1.5 });
+                setBallPosition({ x: hPos.x, y: hPos.y + 1.5 });
               }
             }
           }
