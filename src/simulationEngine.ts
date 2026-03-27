@@ -1,4 +1,5 @@
 import type { Player, Coordinates, Phase, TeamType } from "./types";
+import type { BallState } from "./matchEngine/types";
 
 function distance(p: Coordinates, v: Coordinates, w: Coordinates) {
     let l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
@@ -105,7 +106,7 @@ let tick = 0;
 
 export const nextPosition = (
   players: Player[],
-  ballPosition: Coordinates,
+  ballState: BallState,
   currentPhase: Phase,
   managerStyle: string,
 ): Player[] => {
@@ -113,27 +114,35 @@ export const nextPosition = (
   const style = STYLES[managerStyle] || DFLT_STYLE;
 
   return players.map((p, idx) => {
-    const cur = p.position[currentPhase];
+    const current = p.position[currentPhase];
     const prof = P[p.role] || FALLBACK;
     const isHome = p.team === "home";
+    const isHoldingBall = ballState.holder === p.id;
+    const possessionTeam = ballState.team === p.team;
 
-    const bx = isHome ? ballPosition.x : 100 - ballPosition.x;
-    const by = isHome ? ballPosition.y : 100 - ballPosition.y;
-    const cx = isHome ? cur.x : 100 - cur.x;
-    const cy = isHome ? cur.y : 100 - cur.y;
+    const bx = isHome ? ballState.position.x : 100 - ballState.position.x;
+    const by = isHome ? ballState.position.y : 100 - ballState.position.y;
+    const cx = isHome ? current.x : 100 - current.x;
+    const cy = isHome ? current.y : 100 - current.y;
 
     let tx: number, ty: number;
     if (GK_ROLES.has(p.role)) {
       tx = lerp(50, bx, 0.3);
-      ty = currentPhase === "offensive"
-        ? prof.baseY + (p.role === "Offensive Goalkeeper" ? -8 : -3)
+      ty = currentPhase === 'offensive'
+        ? prof.baseY + (p.role === 'Offensive Goalkeeper' ? -8 : -3)
         : prof.baseY;
+
       if (by > 72) {
         ty = lerp(ty, by - 5, 0.3);
         tx = lerp(tx, bx, 0.5);
       }
     } else {
-      ty = prof.baseY;
+      let dynamicBaseY = prof.baseY;
+      if (possessionTeam && !isHoldingBall) {
+        dynamicBaseY -= 15;
+      }
+      
+      ty = dynamicBaseY;
       const isWide = WIDE_ROLES.has(p.role);
       const isLeft = cx < 50;
 
@@ -142,48 +151,58 @@ export const nextPosition = (
       } else if (isWide) {
         tx = isLeft ? 18 : 82;
       } else {
-        tx = cx;
+        tx = cx
       }
 
       const fx = clamp(prof.ballFollowX + style.ballPull, 0, 0.8);
       const fy = clamp(prof.ballFollowY + style.ballPull * 0.5, 0, 0.7);
-      tx = lerp(tx, bx, fx);
-      ty = lerp(ty, by, fy);
+
+      if (!possessionTeam) {
+        tx = lerp(tx, bx, fx);
+        ty = lerp(ty, by, fy);
+      } else if (isHoldingBall) {
+        ty = lerp(cy, 0, 0.2);
+      }
 
       tx += (bx - 50) * 0.25;
 
-      if (currentPhase === "offensive") {
+      if (currentPhase === 'offensive') {
         ty += prof.attackPush + style.vShift;
         if (isWide) tx += isLeft ? -style.widePush : style.widePush;
       } else {
         ty += prof.defensePull + style.pressLine;
         tx = lerp(tx, 50, prof.compact * style.compactMul * 0.25);
         const d = Math.sqrt((cx - bx) ** 2 + (cy - by) ** 2);
-        if (d < 28 && prof.compact < 0.45) {
-          tx = lerp(tx, bx, 0.25);
-          ty = lerp(ty, by, 0.18);
+
+        if (d < 28 && prof.compact < 0.45 && !possessionTeam) {
+          tx = lerp(tx, bx, 0.4);
+          ty = lerp(ty, by, 0.3);
         }
       }
     }
 
     tx = clamp(tx, 3, 97);
     ty = clamp(ty, 3, 97);
+
     if (!isHome) { tx = 100 - tx; ty = 100 - ty; }
 
-    const dx = tx - cur.x, dy = ty - cur.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const spd = clamp(0.035 * prof.speed * style.tempoMul + dist * 0.0015, 0.015, 0.10);
+    const dx = tx - current.x, dy = ty - current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    let speed = isHoldingBall ? 0.70 : 1.0;
+    const spd = clamp((0.035 * prof.speed * style.tempoMul + distance * 0.0015) * speed, 0.015, 0.10);
 
     const seed = idx * 137.5 + (isHome ? 0 : 500);
     const jx = Math.sin(tick * 0.05 + seed) * 0.12;
     const jy = Math.cos(tick * 0.063 + seed) * 0.12;
+
     return {
       ...p,
       position: {
         ...p.position,
         [currentPhase]: {
-          x: clamp(lerp(cur.x, tx, spd) + jx, 1, 99),
-          y: clamp(lerp(cur.y, ty, spd) + jy, 1, 99),
+          x: clamp(lerp(current.x, tx, spd) + jx, 1, 99),
+          y: clamp(lerp(current.y, ty, spd) + jy, 1, 99),
         },
       },
     };

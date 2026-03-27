@@ -28,6 +28,8 @@ import {
   Flame,
 } from "lucide-react";
 import { nextPosition } from "./simulationEngine";
+import type { BallState } from './matchEngine/types';
+import { updatePossession } from "./matchEngine/possessionSystem";
 
 const SAVED_PLAYERS_KEY = "tactics_board_players";
 const SAVED_ARROWS_KEY = "tactics_board_arrows";
@@ -392,12 +394,34 @@ function App() {
       if (isSimulating) {
         intervalId = setInterval(() => {
           if (!dragged.isDragging || dragged.id === 'match-ball') {
-            setPlayers(prev => nextPosition(prev, ballPosition, phase, playingStyle));
+            const currentBallState: BallState = {
+              holder: null,
+              team: null,
+              position: ballPosition,
+              velocity: { x: 0, y: 0 },
+              isLoose: false,
+            };
+
+            const possessionBall = updatePossession(players, currentBallState, phase);
+            const nextPlayers = nextPosition(players, possessionBall, phase, playingStyle);
+            setPlayers(nextPlayers);
+
+            if (possessionBall.holder) {
+              const holder = nextPlayers.find(p => p.id === possessionBall.holder);
+              if (holder) {
+                const hPos = holder.position[phase];
+
+                const targetX = holder.team === 'home' ? hPos.x : 100 - hPos.x;
+                const targetY = holder.team === 'home' ? hPos.y : 100 - hPos.y;
+
+                setBallPosition({ x: targetX, y: targetY + 1.5 });
+              }
+            }
           }
         }, 33);
       }
       return () => clearInterval(intervalId);
-  }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id]);
+  }, [isSimulating, ballPosition, phase, playingStyle, dragged.isDragging, dragged.id, players]);
 
   useEffect(() => {
     if(!isSimulating || heatmapView === 'off') return;
